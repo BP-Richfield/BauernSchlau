@@ -12,35 +12,53 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f1ea;
+            background: linear-gradient(135deg, #f4f1ea 0%, #e6dfd1 100%);
             color: #2c221e;
             padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        /* Dezente, stilisierte Landschaft im Hintergrund als Landwirtschafts-Motiv */
+        body::after {
+            content: "";
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,60 C300,120 600,20 1200,80 L1200,120 L0,120 Z" fill="%234a5d4e" opacity="0.15"/></svg>') repeat-x;
+            background-size: 1200px 120px;
+            pointer-events: none;
+            z-index: 0;
         }
         .quiz-container {
             background: #ffffff;
             border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
             width: 100%;
             max-width: 700px;
             padding: 30px;
             border: 2px solid #d5c8b5;
+            position: relative;
+            z-index: 1;
         }
         h1 {
-            font-size: 1.8rem;
+            font-size: 1.9rem;
             margin-bottom: 5px;
             color: #4a5d4e;
             text-align: center;
+            letter-spacing: 0.5px;
         }
         .subtitle {
-            font-size: 1rem;
-            color: #666;
-            margin-bottom: 15px;
+            font-size: 1.05rem;
+            color: #5a6b5e;
+            margin-bottom: 20px;
             text-align: center;
-            font-style: italic;
+            font-weight: 600;
         }
         .audio-control-bar {
             background: #faf8f5;
@@ -182,7 +200,7 @@
             flex-shrink: 0;
             font-size: 0.95rem;
         }
-        .option-btn.hover:not(:disabled) {
+        .option-btn:hover:not(:disabled) {
             background-color: #f0ebe1;
             border-color: #4a5d4e;
         }
@@ -272,7 +290,7 @@
 <div class="quiz-container">
     <div id="quiz-box">
         <h1>Bauernschlau</h1>
-        <div class="subtitle">Wer ist der schlauste Bauer in Erbehause?</div>
+        <div class="subtitle">Wer ist der schlauste Bauer von Erwerhause?</div>
         
         <div class="audio-control-bar">
             <span>🎶 Musik-Power:</span>
@@ -288,7 +306,6 @@
             </div>
         </div>
 
-        <!-- Sprachausgabe und Stimmen-Auswahl -->
         <div class="speech-bar">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; color: #555;">
                 <span>🗣️ Vorlese-Stimme wählen:</span>
@@ -332,7 +349,6 @@
         return audioCtx;
     }
 
-    // Stimmen in das Dropdown-Menü laden
     function loadVoices() {
         if (!('speechSynthesis' in window)) return;
         
@@ -350,7 +366,6 @@
         availableVoices.forEach((voice, index) => {
             const opt = document.createElement('option');
             opt.value = index;
-            // Name im Menü anzeigen (Siri/Apple- oder Android-Stimmen tauchen hier auf)
             opt.text = `${voice.name} (${voice.lang})`;
             select.appendChild(opt);
         });
@@ -358,7 +373,6 @@
 
     if ('speechSynthesis' in window) {
         window.speechSynthesis.onvoiceschanged = loadVoices;
-        // Direkt beim Start auch einmal versuchen zu laden
         setTimeout(loadVoices, 200);
     }
 
@@ -380,7 +394,6 @@
         utterance.lang = 'de-DE';
         utterance.rate = 0.88;
 
-        // Ausgewählte Stimme aus dem Dropdown anwenden
         const voiceSelect = document.getElementById('voice-select');
         const selectedVoiceIndex = voiceSelect.value;
         if (selectedVoiceIndex !== "" && availableVoices[selectedVoiceIndex]) {
