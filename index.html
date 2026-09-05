@@ -46,7 +46,7 @@
             border: 1px solid #d5c8b5;
             border-radius: 8px;
             padding: 10px 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
@@ -69,7 +69,7 @@
             font-size: 0.85rem;
             cursor: pointer;
         }
-        .audio-btn, .speech-btn {
+        .audio-btn {
             background-color: #4a5d4e;
             color: white;
             border: none;
@@ -79,15 +79,24 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .audio-btn:hover, .speech-btn:hover {
+        .audio-btn:hover {
             background-color: #3b4b3e;
+        }
+        .speech-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         .speech-btn {
             background-color: #8c7a6b;
-            margin-bottom: 15px;
-            width: 100%;
+            color: white;
+            border: none;
+            border-radius: 8px;
             padding: 10px;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 2;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -95,6 +104,20 @@
         }
         .speech-btn:hover {
             background-color: #726253;
+        }
+        .speech-stop-btn {
+            background-color: #a64d79;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+        }
+        .speech-stop-btn:hover {
+            background-color: #8a3f63;
         }
         .volume-slider {
             width: 70px;
@@ -241,21 +264,24 @@
         <div class="subtitle">Das große Quiz zu Feld, Hof, Schmiedehandwerk und Praxis</div>
         
         <div class="audio-control-bar">
-            <span>🎶 Musik-Auswahl:</span>
+            <span>🎶 Musik-Power:</span>
             <div class="audio-controls-right">
                 <select id="song-select" class="audio-select" onchange="changeSong()">
-                    <option value="0">1. Der Bauerntanz (Flott)</option>
-                    <option value="1">2. Morgenluft (Beschwingt)</option>
-                    <option value="2">3. Schmiedefeuer (Treibend)</option>
-                    <option value="3">4. Wiesengrün (Sanft)</option>
+                    <option value="0">1. Bauerntanz (Flott & Schwungvoll)</option>
+                    <option value="1">2. Morgenluft (Upbeat & Hell)</option>
+                    <option value="2">3. Schmiede-Rock (Treibender Beat)</option>
+                    <option value="3">4. Wiesengrün (Federnd & Schnell)</option>
                 </select>
                 <input type="range" id="vol-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.4" title="Lautstärke">
                 <button class="audio-btn" id="bg-audio-btn" onclick="toggleBackgroundMusic()">Musik an</button>
             </div>
         </div>
 
-        <!-- Sprachausgabe Vorlese-Button -->
-        <button class="speech-btn" onclick="speakQuestion()">🔊 Frage und Antworten vorlesen</button>
+        <!-- Sprachausgabe Steuerung -->
+        <div class="speech-bar">
+            <button class="speech-btn" onclick="speakQuestion()">🔊 Vorlesen starten</button>
+            <button class="speech-stop-btn" onclick="stopSpeech()">🛑 Stopp</button>
+        </div>
 
         <div class="question-counter" id="counter">Frage 1 von 10</div>
         <div class="question-text" id="question">Lade Frage...</div>
@@ -286,15 +312,14 @@
         return audioCtx;
     }
 
-    // Sprachausgabe (Text-to-Speech)
+    // Sprachausgabe mit Stopp-Funktion und angenehmerer Stimmwahl
     function speakQuestion() {
         if (!('speechSynthesis' in window)) {
             alert("Die Sprachausgabe wird von diesem Browser leider nicht unterstützt.");
             return;
         }
         
-        // Laufende Sprachausgabe abbrechen, falls noch was redet
-        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel(); // Laufende Sprachausgabe stoppen
 
         const q = quizQuestions[currentQuestionIndex];
         let textToSpeak = `Frage: ${q.question}. `;
@@ -304,8 +329,22 @@
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = 'de-DE';
-        utterance.rate = 0.9; // Etwas langsamer und deutlicher gesprochen für den Opa
+        utterance.rate = 0.88; // Angenehme, ruhige Sprechgeschwindigkeit
+
+        // Versuchen, eine schöne deutsche Frauenstimme zu finden
+        const voices = window.speechSynthesis.getVoices();
+        const germanVoice = voices.find(v => v.lang.includes('de') && (v.name.includes('Vera') || v.name.includes('Katja') || v.name.includes('Marlene') || v.name.includes('Google') || v.name.includes('Hedda')));
+        if (germanVoice) {
+            utterance.voice = germanVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
+    }
+
+    function stopSpeech() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
     }
 
     function playSound(type) {
@@ -350,16 +389,16 @@
         }
     }
 
-    // 4 verschiedene flottere Musikstile
+    // 4 flottere Musikstile mit echtem Beat und Power (rhythmische Sequenzen)
     const songs = [
-        // 1. Der Bauerntanz (Flott, polka-artig)
-        { tempo: 2200, pattern: [261.63, 329.63, 392.00, 523.25, 392.00, 329.63] },
-        // 2. Morgenluft (Hell & beschwingt)
-        { tempo: 1800, pattern: [329.63, 392.00, 440.00, 523.25, 659.25] },
-        // 3. Schmiedefeuer (Treibender Rhythmus)
-        { tempo: 1500, pattern: [220.00, 277.18, 329.63, 440.00] },
-        // 4. Wiesengrün (Sanft & flüssig)
-        { tempo: 2500, pattern: [196.00, 246.94, 293.66, 392.00, 329.63] }
+        // 1. Bauerntanz (Flotte Polka mit tiefem Bass-Beat)
+        { tempo: 350, melody: [261.63, 392.00, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63], bass: [130.81, 196.00, 130.81, 196.00] },
+        // 2. Morgenluft (Upbeat & hell)
+        { tempo: 300, melody: [329.63, 440.00, 523.25, 659.25, 523.25, 440.00, 329.63, 392.00], bass: [164.81, 220.00, 164.81, 220.00] },
+        // 3. Schmiede-Rock (Treibender, kräftiger Beat)
+        { tempo: 250, melody: [220.00, 329.63, 440.00, 392.00, 329.63, 293.66, 220.00, 246.94], bass: [110.00, 164.81, 110.00, 164.81] },
+        // 4. Wiesengrün (Federnd & schnell)
+        { tempo: 320, melody: [392.00, 493.88, 587.33, 493.88, 392.00, 329.63, 293.66, 329.63], bass: [196.00, 146.83, 196.00, 146.83] }
     ];
 
     function startMusic() {
@@ -368,29 +407,49 @@
 
         const songIndex = parseInt(document.getElementById('song-select').value);
         const currentSong = songs[songIndex];
-        let noteIdx = 0;
+        let step = 0;
 
         bgMusicInterval = setInterval(() => {
             if (!isMusicPlaying) return;
             try {
                 const sliderVal = parseFloat(document.getElementById('vol-slider').value);
-                const freq = currentSong.pattern[noteIdx % currentSong.pattern.length];
-                noteIdx++;
-
+                
+                // Melodie-Ton spielen
+                const melFreq = currentSong.melody[step % currentSong.melody.length];
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
+                osc.type = 'triangle'; // Klingt fetter und kraftvoller als Sinus
+                osc.frequency.value = melFreq;
                 
                 osc.connect(gain);
                 gain.connect(ctx.destination);
 
                 const now = ctx.currentTime;
-                gain.gain.setValueAtTime(sliderVal * 0.8, now);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+                gain.gain.setValueAtTime(sliderVal * 0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
                 
                 osc.start(now);
-                osc.stop(now + 1.2);
+                osc.stop(now + 0.3);
+
+                // Bass-Beat bei jedem zweiten Schritt für echten Rhythmus
+                if (step % 2 === 0) {
+                    const bassFreq = currentSong.bass[(step / 2) % currentSong.bass.length];
+                    const bassOsc = ctx.createOscillator();
+                    const bassGain = ctx.createGain();
+                    bassOsc.type = 'sawtooth'; // Satter Bass-Sound
+                    bassOsc.frequency.value = bassFreq;
+
+                    bassOsc.connect(bassGain);
+                    bassGain.connect(ctx.destination);
+
+                    bassGain.gain.setValueAtTime(sliderVal * 0.7, now);
+                    bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+                    bassOsc.start(now);
+                    bassOsc.stop(now + 0.2);
+                }
+
+                step++;
             } catch(e) {}
         }, currentSong.tempo);
     }
@@ -415,7 +474,7 @@
 
     function changeSong() {
         if (isMusicPlaying) {
-            startMusic(); // Neustart mit dem neu ausgewählten Titel
+            startMusic();
         }
     }
 
@@ -536,7 +595,6 @@
         if (answered) return;
         answered = true;
 
-        // Falls die Sprachausgabe noch redet, beim Antworten sofort abbrechen
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
         }
