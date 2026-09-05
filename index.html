@@ -38,7 +38,7 @@
         .subtitle {
             font-size: 0.95rem;
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-align: center;
         }
         .audio-control-bar {
@@ -52,29 +52,52 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 500;
         }
         .audio-controls-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .audio-btn {
+        .audio-select {
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #d5c8b5;
+            background: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .audio-btn, .speech-btn {
             background-color: #4a5d4e;
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
+            padding: 7px 14px;
+            font-size: 0.85rem;
             cursor: pointer;
             font-weight: bold;
         }
-        .audio-btn:hover {
+        .audio-btn:hover, .speech-btn:hover {
             background-color: #3b4b3e;
         }
+        .speech-btn {
+            background-color: #8c7a6b;
+            margin-bottom: 15px;
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .speech-btn:hover {
+            background-color: #726253;
+        }
         .volume-slider {
-            width: 90px;
+            width: 70px;
             accent-color: #4a5d4e;
             cursor: pointer;
         }
@@ -218,12 +241,21 @@
         <div class="subtitle">Das große Quiz zu Feld, Hof, Schmiedehandwerk und Praxis</div>
         
         <div class="audio-control-bar">
-            <span>🎶 Musik:</span>
+            <span>🎶 Musik-Auswahl:</span>
             <div class="audio-controls-right">
+                <select id="song-select" class="audio-select" onchange="changeSong()">
+                    <option value="0">1. Der Bauerntanz (Flott)</option>
+                    <option value="1">2. Morgenluft (Beschwingt)</option>
+                    <option value="2">3. Schmiedefeuer (Treibend)</option>
+                    <option value="3">4. Wiesengrün (Sanft)</option>
+                </select>
                 <input type="range" id="vol-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.4" title="Lautstärke">
                 <button class="audio-btn" id="bg-audio-btn" onclick="toggleBackgroundMusic()">Musik an</button>
             </div>
         </div>
+
+        <!-- Sprachausgabe Vorlese-Button -->
+        <button class="speech-btn" onclick="speakQuestion()">🔊 Frage und Antworten vorlesen</button>
 
         <div class="question-counter" id="counter">Frage 1 von 10</div>
         <div class="question-text" id="question">Lade Frage...</div>
@@ -252,6 +284,28 @@
             audioCtx.resume();
         }
         return audioCtx;
+    }
+
+    // Sprachausgabe (Text-to-Speech)
+    function speakQuestion() {
+        if (!('speechSynthesis' in window)) {
+            alert("Die Sprachausgabe wird von diesem Browser leider nicht unterstützt.");
+            return;
+        }
+        
+        // Laufende Sprachausgabe abbrechen, falls noch was redet
+        window.speechSynthesis.cancel();
+
+        const q = quizQuestions[currentQuestionIndex];
+        let textToSpeak = `Frage: ${q.question}. `;
+        q.options.forEach((opt, index) => {
+            textToSpeak += `Antwort ${index + 1}: ${opt}. `;
+        });
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'de-DE';
+        utterance.rate = 0.9; // Etwas langsamer und deutlicher gesprochen für den Opa
+        window.speechSynthesis.speak(utterance);
     }
 
     function playSound(type) {
@@ -296,8 +350,53 @@
         }
     }
 
-    function toggleBackgroundMusic() {
+    // 4 verschiedene flottere Musikstile
+    const songs = [
+        // 1. Der Bauerntanz (Flott, polka-artig)
+        { tempo: 2200, pattern: [261.63, 329.63, 392.00, 523.25, 392.00, 329.63] },
+        // 2. Morgenluft (Hell & beschwingt)
+        { tempo: 1800, pattern: [329.63, 392.00, 440.00, 523.25, 659.25] },
+        // 3. Schmiedefeuer (Treibender Rhythmus)
+        { tempo: 1500, pattern: [220.00, 277.18, 329.63, 440.00] },
+        // 4. Wiesengrün (Sanft & flüssig)
+        { tempo: 2500, pattern: [196.00, 246.94, 293.66, 392.00, 329.63] }
+    ];
+
+    function startMusic() {
         const ctx = getAudioContext();
+        if (bgMusicInterval) clearInterval(bgMusicInterval);
+
+        const songIndex = parseInt(document.getElementById('song-select').value);
+        const currentSong = songs[songIndex];
+        let noteIdx = 0;
+
+        bgMusicInterval = setInterval(() => {
+            if (!isMusicPlaying) return;
+            try {
+                const sliderVal = parseFloat(document.getElementById('vol-slider').value);
+                const freq = currentSong.pattern[noteIdx % currentSong.pattern.length];
+                noteIdx++;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+                gain.gain.setValueAtTime(sliderVal * 0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+                
+                osc.start(now);
+                osc.stop(now + 1.2);
+            } catch(e) {}
+        }, currentSong.tempo);
+    }
+
+    function toggleBackgroundMusic() {
+        getAudioContext();
         const btn = document.getElementById('bg-audio-btn');
 
         if (isMusicPlaying) {
@@ -310,45 +409,17 @@
             isMusicPlaying = true;
             btn.innerText = "Musik aus";
             btn.style.backgroundColor = "#a64d79";
-
-            const chords = [
-                [261.63, 329.63, 392.00], 
-                [220.00, 261.63, 329.63], 
-                [174.61, 220.00, 261.63], 
-                [196.00, 246.94, 293.66]  
-            ];
-            let chordIndex = 0;
-
-            bgMusicInterval = setInterval(() => {
-                if (!isMusicPlaying) return;
-                try {
-                    const currentChord = chords[chordIndex];
-                    chordIndex = (chordIndex + 1) % chords.length;
-                    
-                    // Aktuellen Wert des Reglers auslesen (Standard ist 0.4)
-                    const sliderVal = parseFloat(document.getElementById('vol-slider').value);
-
-                    currentChord.forEach(freq => {
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.value = freq;
-                        
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-
-                        const now = ctx.currentTime;
-                        gain.gain.setValueAtTime(sliderVal, now);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
-                        
-                        osc.start(now);
-                        osc.stop(now + 3.5);
-                    });
-                } catch(e) {}
-            }, 4000);
+            startMusic();
         }
     }
 
+    function changeSong() {
+        if (isMusicPlaying) {
+            startMusic(); // Neustart mit dem neu ausgewählten Titel
+        }
+    }
+
+    // Gesamter Fragenpool
     const allQuestions = [
         { question: "Was machte der Schmied traditionell mit einer abgenutzten oder stumpfen Pflugschar?", options: ["Er warf sie sofort weg", "Er schärfte und hämmerte sie im heißen Zustand in der Feldschmiede wieder aus", "Er goss sie komplett neu aus Plastik", "Er strich sie mit Öl an"], correct: 1, explanation: "Richtig! Die Pflugschar wurde im Feuer erhitzt und auf dem Amboss vom Schmied fachmännisch ausgeschmiedet und nachgeschärft." },
         { question: "Wofür wurde der Amboss in der Dorfschmiede hauptsächlich verwendet?", options: ["Als Sitzgelegenheit für den Meister", "Als massive, stählerne Unterlage zum Bearbeiten, Schmieden und Biegen von glühendem Eisen", "Zum Aufbewahren von Hufeisen", "Als Messgerät für Getreide"], correct: 1, explanation: "Richtig! Der Amboss ist das Herzstück der Schmiede, das den Wumms der Hammerschläge aufnimmt." },
@@ -464,6 +535,11 @@
     function selectOption(selectedIndex) {
         if (answered) return;
         answered = true;
+
+        // Falls die Sprachausgabe noch redet, beim Antworten sofort abbrechen
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
 
         const q = quizQuestions[currentQuestionIndex];
         const buttons = document.getElementsByClassName('option-btn');
