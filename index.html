@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Das große Bauern- und Schmiedewissen-Quiz</title>
+    <title>Bauernschlau</title>
     <style>
         * {
             box-sizing: border-box;
@@ -202,8 +202,8 @@
 
 <div class="quiz-container">
     <div id="quiz-box">
-        <h1>Altes Bauern- und Schmiedewissen</h1>
-        <div class="subtitle">Fragen zu Feld, Hof, Schmiedehandwerk und Situationsentscheidungen</div>
+        <h1>Bauernschlau</h1>
+        <div class="subtitle">Das große Quiz zu Feld, Hof, Schmiedehandwerk und Praxis</div>
         
         <div class="audio-control-bar">
             <span>🎶 Hintergrundmusik:</span>
@@ -229,7 +229,7 @@
     let bgMusicInterval = null;
     let isMusicPlaying = false;
 
-    // Verbesserte, kräftigere Sounds für richtig und falsch
+    // Speziell angepasste Sounds (Zonk-Sound für falsch & heller, präsenter Erfolgston)
     function playSound(type) {
         try {
             if (!audioCtx) {
@@ -242,36 +242,39 @@
             const now = audioCtx.currentTime;
 
             if (type === 'correct') {
-                // Fröhlicher, klarer Dreiklang (heller und gut hörbar)
-                [523.25, 659.25, 783.99].forEach((freq, index) => {
+                // Heller, harmonischer und präsenter Erfolgston (wie ein kleiner Fanfaren-Akkord)
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.type = 'sine';
+                    osc.type = 'triangle';
                     osc.frequency.value = freq;
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
                     
-                    const startTime = now + (index * 0.08);
-                    gain.gain.setValueAtTime(0.25, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+                    const startTime = now + (index * 0.07);
+                    gain.gain.setValueAtTime(0.2, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
                     osc.start(startTime);
-                    osc.stop(startTime + 0.3);
+                    osc.stop(startTime + 0.35);
                 });
             } else {
-                // Tieferer, satter Brumm-Ton bei falscher Antwort
+                // Der berühmte abfallende "Zonk"-Sound (typischer Ton, der nach unten rutscht)
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(130.81, now); // C3
-                osc.frequency.setValueAtTime(98.00, now + 0.15); // G2
+                
+                // Frequenz gleitet schnell nach unten (Tonhöhen-Rutschen)
+                osc.frequency.setValueAtTime(261.63, now); // Start bei C4
+                osc.frequency.exponentialRampToValueAtTime(82.41, now + 0.45); // Rutscht runter zu E2
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
 
                 gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                
                 osc.start(now);
-                osc.stop(now + 0.4);
+                osc.stop(now + 0.45);
             }
         } catch (e) {
             console.log("Audio nicht unterstützt", e);
