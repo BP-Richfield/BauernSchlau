@@ -36,10 +36,11 @@
             text-align: center;
         }
         .subtitle {
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: #666;
             margin-bottom: 15px;
             text-align: center;
+            font-style: italic;
         }
         .audio-control-bar {
             background: #faf8f5;
@@ -61,13 +62,14 @@
             gap: 8px;
             flex-wrap: wrap;
         }
-        .audio-select {
+        .audio-select, .voice-select {
             padding: 6px;
             border-radius: 6px;
             border: 1px solid #d5c8b5;
             background: white;
             font-size: 0.85rem;
             cursor: pointer;
+            max-width: 200px;
         }
         .audio-btn {
             background-color: #4a5d4e;
@@ -84,8 +86,17 @@
         }
         .speech-bar {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px;
             margin-bottom: 20px;
+            background: #faf8f5;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #d5c8b5;
+        }
+        .speech-controls-row {
+            display: flex;
+            gap: 10px;
         }
         .speech-btn {
             background-color: #8c7a6b;
@@ -171,7 +182,7 @@
             flex-shrink: 0;
             font-size: 0.95rem;
         }
-        .option-btn:hover:not(:disabled) {
+        .option-btn.hover:not(:disabled) {
             background-color: #f0ebe1;
             border-color: #4a5d4e;
         }
@@ -261,26 +272,34 @@
 <div class="quiz-container">
     <div id="quiz-box">
         <h1>Bauernschlau</h1>
-        <div class="subtitle">Das große Quiz zu Feld, Hof, Schmiedehandwerk und Praxis</div>
+        <div class="subtitle">Wer ist der schlauste Bauer in Erbehause?</div>
         
         <div class="audio-control-bar">
             <span>🎶 Musik-Power:</span>
             <div class="audio-controls-right">
                 <select id="song-select" class="audio-select" onchange="changeSong()">
-                    <option value="0">1. Bauerntanz (Flott & Schwungvoll)</option>
-                    <option value="1">2. Morgenluft (Upbeat & Hell)</option>
-                    <option value="2">3. Schmiede-Rock (Treibender Beat)</option>
-                    <option value="3">4. Wiesengrün (Federnd & Schnell)</option>
+                    <option value="0">1. Bauerntanz (Flott)</option>
+                    <option value="1">2. Morgenluft (Upbeat)</option>
+                    <option value="2">3. Schmiede-Rock (Beat)</option>
+                    <option value="3">4. Wiesengrün (Schnell)</option>
                 </select>
                 <input type="range" id="vol-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.4" title="Lautstärke">
                 <button class="audio-btn" id="bg-audio-btn" onclick="toggleBackgroundMusic()">Musik an</button>
             </div>
         </div>
 
-        <!-- Sprachausgabe Steuerung -->
+        <!-- Sprachausgabe und Stimmen-Auswahl -->
         <div class="speech-bar">
-            <button class="speech-btn" onclick="speakQuestion()">🔊 Vorlesen starten</button>
-            <button class="speech-stop-btn" onclick="stopSpeech()">🛑 Stopp</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; color: #555;">
+                <span>🗣️ Vorlese-Stimme wählen:</span>
+                <select id="voice-select" class="voice-select">
+                    <option value="">Lade Stimmen...</option>
+                </select>
+            </div>
+            <div class="speech-controls-row">
+                <button class="speech-btn" onclick="speakQuestion()">🔊 Vorlesen starten</button>
+                <button class="speech-stop-btn" onclick="stopSpeech()">🛑 Stopp</button>
+            </div>
         </div>
 
         <div class="question-counter" id="counter">Frage 1 von 10</div>
@@ -301,6 +320,7 @@
     let audioCtx = null;
     let bgMusicInterval = null;
     let isMusicPlaying = false;
+    let availableVoices = [];
 
     function getAudioContext() {
         if (!audioCtx) {
@@ -312,14 +332,43 @@
         return audioCtx;
     }
 
-    // Sprachausgabe mit Stopp-Funktion und angenehmerer Stimmwahl
+    // Stimmen in das Dropdown-Menü laden
+    function loadVoices() {
+        if (!('speechSynthesis' in window)) return;
+        
+        availableVoices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('de') || v.lang.startsWith('en'));
+        const select = document.getElementById('voice-select');
+        select.innerHTML = '';
+
+        if (availableVoices.length === 0) {
+            const opt = document.createElement('option');
+            opt.text = "Standard-Systemstimme";
+            select.appendChild(opt);
+            return;
+        }
+
+        availableVoices.forEach((voice, index) => {
+            const opt = document.createElement('option');
+            opt.value = index;
+            // Name im Menü anzeigen (Siri/Apple- oder Android-Stimmen tauchen hier auf)
+            opt.text = `${voice.name} (${voice.lang})`;
+            select.appendChild(opt);
+        });
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        // Direkt beim Start auch einmal versuchen zu laden
+        setTimeout(loadVoices, 200);
+    }
+
     function speakQuestion() {
         if (!('speechSynthesis' in window)) {
             alert("Die Sprachausgabe wird von diesem Browser leider nicht unterstützt.");
             return;
         }
         
-        window.speechSynthesis.cancel(); // Laufende Sprachausgabe stoppen
+        window.speechSynthesis.cancel();
 
         const q = quizQuestions[currentQuestionIndex];
         let textToSpeak = `Frage: ${q.question}. `;
@@ -329,13 +378,13 @@
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = 'de-DE';
-        utterance.rate = 0.88; // Angenehme, ruhige Sprechgeschwindigkeit
+        utterance.rate = 0.88;
 
-        // Versuchen, eine schöne deutsche Frauenstimme zu finden
-        const voices = window.speechSynthesis.getVoices();
-        const germanVoice = voices.find(v => v.lang.includes('de') && (v.name.includes('Vera') || v.name.includes('Katja') || v.name.includes('Marlene') || v.name.includes('Google') || v.name.includes('Hedda')));
-        if (germanVoice) {
-            utterance.voice = germanVoice;
+        // Ausgewählte Stimme aus dem Dropdown anwenden
+        const voiceSelect = document.getElementById('voice-select');
+        const selectedVoiceIndex = voiceSelect.value;
+        if (selectedVoiceIndex !== "" && availableVoices[selectedVoiceIndex]) {
+            utterance.voice = availableVoices[selectedVoiceIndex];
         }
 
         window.speechSynthesis.speak(utterance);
@@ -389,15 +438,10 @@
         }
     }
 
-    // 4 flottere Musikstile mit echtem Beat und Power (rhythmische Sequenzen)
     const songs = [
-        // 1. Bauerntanz (Flotte Polka mit tiefem Bass-Beat)
         { tempo: 350, melody: [261.63, 392.00, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63], bass: [130.81, 196.00, 130.81, 196.00] },
-        // 2. Morgenluft (Upbeat & hell)
         { tempo: 300, melody: [329.63, 440.00, 523.25, 659.25, 523.25, 440.00, 329.63, 392.00], bass: [164.81, 220.00, 164.81, 220.00] },
-        // 3. Schmiede-Rock (Treibender, kräftiger Beat)
         { tempo: 250, melody: [220.00, 329.63, 440.00, 392.00, 329.63, 293.66, 220.00, 246.94], bass: [110.00, 164.81, 110.00, 164.81] },
-        // 4. Wiesengrün (Federnd & schnell)
         { tempo: 320, melody: [392.00, 493.88, 587.33, 493.88, 392.00, 329.63, 293.66, 329.63], bass: [196.00, 146.83, 196.00, 146.83] }
     ];
 
@@ -414,11 +458,10 @@
             try {
                 const sliderVal = parseFloat(document.getElementById('vol-slider').value);
                 
-                // Melodie-Ton spielen
                 const melFreq = currentSong.melody[step % currentSong.melody.length];
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                osc.type = 'triangle'; // Klingt fetter und kraftvoller als Sinus
+                osc.type = 'triangle';
                 osc.frequency.value = melFreq;
                 
                 osc.connect(gain);
@@ -431,12 +474,11 @@
                 osc.start(now);
                 osc.stop(now + 0.3);
 
-                // Bass-Beat bei jedem zweiten Schritt für echten Rhythmus
                 if (step % 2 === 0) {
                     const bassFreq = currentSong.bass[(step / 2) % currentSong.bass.length];
                     const bassOsc = ctx.createOscillator();
                     const bassGain = ctx.createGain();
-                    bassOsc.type = 'sawtooth'; // Satter Bass-Sound
+                    bassOsc.type = 'sawtooth';
                     bassOsc.frequency.value = bassFreq;
 
                     bassOsc.connect(bassGain);
@@ -478,7 +520,6 @@
         }
     }
 
-    // Gesamter Fragenpool
     const allQuestions = [
         { question: "Was machte der Schmied traditionell mit einer abgenutzten oder stumpfen Pflugschar?", options: ["Er warf sie sofort weg", "Er schärfte und hämmerte sie im heißen Zustand in der Feldschmiede wieder aus", "Er goss sie komplett neu aus Plastik", "Er strich sie mit Öl an"], correct: 1, explanation: "Richtig! Die Pflugschar wurde im Feuer erhitzt und auf dem Amboss vom Schmied fachmännisch ausgeschmiedet und nachgeschärft." },
         { question: "Wofür wurde der Amboss in der Dorfschmiede hauptsächlich verwendet?", options: ["Als Sitzgelegenheit für den Meister", "Als massive, stählerne Unterlage zum Bearbeiten, Schmieden und Biegen von glühendem Eisen", "Zum Aufbewahren von Hufeisen", "Als Messgerät für Getreide"], correct: 1, explanation: "Richtig! Der Amboss ist das Herzstück der Schmiede, das den Wumms der Hammerschläge aufnimmt." },
