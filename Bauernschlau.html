@@ -1,0 +1,387 @@
+type,attribute,value,displayName,iiqElevatedAccess,owner,requestable,classifications,bntApplication,extAttr1,extAttr2,extAttr3,directory
+group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=BioNTechRW,DC=bntman,DC=int",BNTMAN\bntman\APP_PCS163_PA_DS_1_L0,false,,true,,AD_PCS163,undefined,undefined,undefined,undefined
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Landwirtschafts-Quiz für den Großvater</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f1ea;
+            color: #2c221e;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .quiz-container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+            padding: 30px;
+            border: 2px solid #d5c8b5;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #4a5d4e;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .question-counter {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #8c7a6b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .option-btn {
+            background-color: #faf8f5;
+            border: 2px solid #d5c8b5;
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #2c221e;
+        }
+        .option-btn:hover:not(:disabled) {
+            background-color: #f0ebe1;
+            border-color: #4a5d4e;
+        }
+        .option-btn.correct {
+            background-color: #d4edda !important;
+            border-color: #28a745 !important;
+            color: #155724;
+            font-weight: bold;
+        }
+        .option-btn.incorrect {
+            background-color: #f8d7da !important;
+            border-color: #dc3545 !important;
+            color: #721c24;
+        }
+        .feedback-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            display: none;
+            line-height: 1.4;
+        }
+        .feedback-box.show {
+            display: block;
+        }
+        .feedback-box.correct-fb {
+            background-color: #e2f0d9;
+            color: #274e13;
+            border: 1px solid #b6d7a8;
+        }
+        .feedback-box.incorrect-fb {
+            background-color: #fce4d6;
+            color: #a64d79;
+            border: 1px solid #f4cccc;
+        }
+        .next-btn {
+            background-color: #4a5d4e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            display: none;
+        }
+        .next-btn:hover {
+            background-color: #3b4b3e;
+        }
+        .results-container {
+            text-align: center;
+            display: none;
+        }
+        .results-container h2 {
+            font-size: 2rem;
+            color: #4a5d4e;
+            margin-bottom: 15px;
+        }
+        .results-container p {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+        }
+        .restart-btn {
+            background-color: #4a5d4e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div id="quiz-box">
+        <h1>Altes Bauernwissen</h1>
+        <div class="subtitle">Fragen zu Feldern, Wald und bäuerlicher Praxis von früher</div>
+        <div class="question-counter" id="counter">Frage 1 von 10</div>
+        <div class="question-text" id="question">Lade Frage...</div>
+        <div class="options-grid" id="options"></div>
+        <div class="feedback-box" id="feedback"></div>
+        <button class="next-btn" id="next-btn" onclick="nextQuestion()">Nächste Frage</button>
+    </div>
+
+    <div class="results-container" id="results">
+        <h2>Geschafft!</h2>
+        <p id="score-text"></p>
+        <button class="restart-btn" onclick="restartQuiz()">Quiz noch einmal spielen</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            question: "Wie viele Quadratmeter (m²) entsprechen genau 30 Hektar (ha)?",
+            options: [
+                "3.000 m²",
+                "30.000 m²",
+                "300.000 m²",
+                "3.000.000 m²"
+            ],
+            correct: 2,
+            explanation: "Richtig! 1 Hektar sind 10.000 m². 30 Hektar sind folglich 300.000 m² (3 mal 100.000)."
+        },
+        {
+            question: "Was versteht man in der Forstwirtschaft traditionell unter einem ‚Raummeter‘ (rm) geschichtetem Holz?",
+            options: [
+                "1 Kubikmeter fester Holzstamm ohne Zwischenräume",
+                "1 Kubikmeter geschichtetes Rundholz inklusive der Luftzwischenräume zwischen den Scheiten",
+                "Genau 1 Ster oder 100 Liter Brennholz",
+                "Das Volumen von einem Klafter gehauener Meterstücke"
+            ],
+            correct: 1,
+            explanation: "Richtig! Ein Raummeter (oder Ster) ist 1 m × 1 m × 1 m geschichtetes Holz inklusive der Luftzwischenräume. Der Festmeter hingegen misst reines Massivholz ohne Luft."
+        },
+        {
+            question: "Früher wurde Land oft noch in ‚Morgen‘ gemessen. Wie viel Fläche entsprach im hessischen Raum grob einem Morgen?",
+            options: [
+                "Etwa 250 Quadratmeter (was man an einem Morgen jäten konnte)",
+                "Etwa 2.500 Quadratmeter (die Fläche, die ein Gespann an einem Vormittag pflügen konnte)",
+                "Genau 10.000 Quadratmeter wie ein heutiger Hektar",
+                "Genau einen Ackerstreifen von 100 mal 100 Schritten"
+            ],
+            correct: 1,
+            explanation: "Richtig! Ein Morgen war traditionell die Fläche, die ein Mann mit einem Gespann (Pferd oder Ochse) an einem Vormittag pflügen konnte – meist um die 2.500 m² (je nach Region etwas unterschiedlich)."
+        },
+        {
+            question: "Was bedeutet es, wenn ein Acker früher im ‚Drei-Felder-Wirtschafts-System‘ brachlag?",
+            options: [
+                "Das Feld wurde mit Steinen beräumt und nicht betreten",
+                "Das Feld wurde im Sommer komplett mit Hackfrüchten bestellt",
+                "Das Feld wurde in dem Jahr gar nicht besät, damit sich der Boden erholen konnte",
+                "Das Feld wurde tief umgepflügt und mit Stalldung überwintert"
+            ],
+            correct: 2,
+            explanation: "Richtig! Bei der Dreifelderwirtschaft lag jedes Feld im Turnus ein Jahr lang brach, um Nährstoffe anzureichern und Unkraut zu bekämpfen."
+        },
+        {
+            question: "Welches alte landwirtschaftliche Gerät wurde traditionell mit einem ‚Worb‘ (Sensenbaum) und einem ‚Senseneisen‘ verbunden und musste regelmäßig auf dem Dengelstock ‚gedengelt‘ werden?",
+            options: [
+                "Der Pflug",
+                "Die Sense",
+                "Die Egge",
+                "Die Hand-Sichel"
+            ],
+            correct: 1,
+            explanation: "Richtig! Die Sense wurde auf dem Dengelstock mit dem Dengelhammer bearbeitet, um die Schneide hauchdünn auszuhämmern (zu verdichten), bevor sie gewetzt wurde."
+        },
+        {
+            question: "Wie viel sind 50 Hektar in Ar (a) umgerechnet?",
+            options: [
+                "50 Ar",
+                "500 Ar",
+                "5.000 Ar",
+                "50.000 Ar"
+            ],
+            correct: 2,
+            explanation: "Richtig! 1 Hektar sind 100 Ar. 50 Hektar mal 100 ergibt 5.000 Ar."
+        },
+        {
+            question: "Was verstand man früher unter dem ‚Zehnten‘, den die Bauern abgeben mussten?",
+            options: [
+                "Jedes zehnte Jahr durfte nichts angebaut werden",
+                "Ein Zehntel der Ernte musste als Abgabe an Kirche oder Grundherrn abgetreten werden",
+                "Zehn Knechte mussten pro Hof für den Frondienst gestellt werden",
+                "Zehn Prozent des Viehbestands wurden jeden Herbst geschlachtet"
+            ],
+            correct: 1,
+            explanation: "Richtig! Der Zehnte war eine jahrhundertealte Abgabe (Natural- oder Geldsteuer), bei der ein Zehntel des Ertrags abgegeben werden musste."
+        },
+        {
+            question: "Welches Holz war im bäuerlichen Fachwerkbau und für langlebige Weidepfähle wegen seiner enormen Wetterbeständigkeit besonders begehrt?",
+            options: [
+                "Fichtenholz",
+                "Pappelholz",
+                "Eichenholz",
+                "Erlenholz"
+            ],
+            correct: 2,
+            explanation: "Richtig! Eichenholz ist extrem hart, witterungsbeständig und verrottet im feuchten Boden oder an der Luft langsamer als die meisten anderen heimischen Hölzer."
+        },
+        {
+            question: "Wenn man im Wald von einem ‚Festmeter‘ (fm) spricht, was ist damit im Vergleich zum Raummeter gemeint?",
+            options: [
+                "Reines massives Holz ohne Rinde und ohne die Zwischenräume, also 1 m³ Massivholz",
+                "Ein fester Holzstapel, der auf einen vierräderigen Leiterwagen passt",
+                "Holz, das nach dem Fällen mindestens einen Winter lang getrocknet ist",
+                "Stämme, die besonders dick und schwer im Wald liegen"
+            ],
+            correct: 0,
+            explanation: "Richtig! Ein Festmeter entspricht genau einem Kubikmeter reiner fester Holzsubstanz ohne Luftzwischenräume."
+        },
+        {
+            question: "Was machte man früher auf den heimischen Streuobstwiesen im Spätwinter traditionell mit den Obstbäumen (wie Apfel- und Birnbäumen)?",
+            options: [
+                "Man schnitt die Kronen stark zurück (Kronenschnitt), um altes Holz zu entfernen und den Ertrag zu sichern",
+                "Man nagelte Kupfernägel in den Stamm, um Schädlinge fernzuhalten",
+                "Man deckte die Baumscheiben mit dicken Schichten aus frischem Schweinemist ab",
+                "Man rieb die Stämme mit Kalkmilch ein, um Frostschäden zu verhindern – geschnitten wurde erst im Juni"
+            ],
+            correct: 0,
+            explanation: "Richtig! Der klassische Winterschnitt (Kronenschnitt) im Januar/Februar war Pflicht, um Licht in die Krone zu lassen und schmackhaftes Obst zu ernten."
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+
+    function loadQuestion() {
+        answered = false;
+        const q = quizData[currentQuestion];
+        document.getElementById('counter').innerText = `Frage ${currentQuestion + 1} von ${quizData.length}`;
+        document.getElementById('question').innerText = q.question;
+        
+        const optionsContainer = document.getElementById('options');
+        optionsContainer.innerHTML = '';
+        
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => selectOption(index);
+            optionsContainer.appendChild(btn);
+        });
+
+        document.getElementById('feedback').className = 'feedback-box';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('next-btn').style.display = 'none';
+    }
+
+    function selectOption(selectedIndex) {
+        if (answered) return;
+        answered = true;
+
+        const q = quizData[currentQuestion];
+        const buttons = document.getElementsByClassName('option-btn');
+        const feedbackBox = document.getElementById('feedback');
+
+        if (selectedIndex === q.correct) {
+            buttons[selectedIndex].classList.add('correct');
+            feedbackBox.className = 'feedback-box show correct-fb';
+            feedbackBox.innerText = q.explanation;
+            score++;
+        } else {
+            buttons[selectedIndex].classList.add('incorrect');
+            buttons[q.correct].classList.add('correct');
+            feedbackBox.className = 'feedback-box show incorrect-fb';
+            feedbackBox.innerText = "Leider nicht ganz richtig. " + q.explanation;
+        }
+
+        // Alle Buttons deaktivieren
+        for (let btn of buttons) {
+            btn.disabled = true;
+        }
+
+        // Nächsten Button anzeigen oder Text anpassen bei letzter Frage
+        const nextBtn = document.getElementById('next-btn');
+        if (currentQuestion < quizData.length - 1) {
+            nextBtn.innerText = "Nächste Frage";
+        } else {
+            nextBtn.innerText = "Ergebnis anzeigen";
+        }
+        nextBtn.style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+        if (currentQuestion < quizData.length) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    function showResults() {
+        document.getElementById('quiz-box').style.display = 'none';
+        const resContainer = document.getElementById('results');
+        resContainer.style.display = 'block';
+        
+        let message = `Ergebnis: Du hast ${score} von ${quizData.length} Fragen richtig beantwortet!`;
+        if (score === quizData.length) {
+            message += " Das ist meisterhaft – da spricht der echte Experte vom Fach!";
+        } else if (score >= 7) {
+            message += " Hervorragend! Da sitzt das alte Wissen noch wie früher.";
+        } else {
+            message += " Schön mitgedacht, da kommen Erinnerungen an die alte Arbeit hoch!";
+        }
+        document.getElementById('score-text').innerText = message;
+    }
+
+    function restartQuiz() {
+        currentQuestion = 0;
+        score = 0;
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('quiz-box').style.display = 'block';
+        loadQuestion();
+    }
+
+    // Start beim Laden
+    loadQuestion();
+</script>
+
+</body>
+</html>
