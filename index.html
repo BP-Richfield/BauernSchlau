@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Das große Bauern- und Hofquiz</title>
+    <title>Das große Bauern- und Schmiede-Quiz</title>
     <style>
         * {
             box-sizing: border-box;
@@ -31,15 +31,39 @@
         }
         h1 {
             font-size: 1.8rem;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #4a5d4e;
             text-align: center;
         }
         .subtitle {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #666;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             text-align: center;
+        }
+        .audio-control-bar {
+            background: #faf8f5;
+            border: 1px solid #d5c8b5;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .audio-btn {
+            background-color: #4a5d4e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .audio-btn:hover {
+            background-color: #3b4b3e;
         }
         .question-counter {
             font-size: 0.9rem;
@@ -153,9 +177,15 @@
 
 <div class="quiz-container">
     <div id="quiz-box">
-        <h1>Altes Bauernwissen</h1>
-        <div class="subtitle">100 Fragen rund um Feld, Wald, Vieh und Hof</div>
-        <div class="question-counter" id="counter">Frage 1 von 100</div>
+        <h1>Altes Bauern- und Schmiedewissen</h1>
+        <div class="subtitle">Fragen zu Feld, Hof, Schmiedehandwerk und Situationsentscheidungen</div>
+        
+        <div class="audio-control-bar">
+            <span>🎶 Dezente Hintergrundmusik:</span>
+            <button class="audio-btn" id="bg-audio-btn" onclick="toggleBackgroundMusic()">Musik einschalten</button>
+        </div>
+
+        <div class="question-counter" id="counter">Frage 1 von 30</div>
         <div class="question-text" id="question">Lade Frage...</div>
         <div class="options-grid" id="options"></div>
         <div class="feedback-box" id="feedback"></div>
@@ -171,7 +201,10 @@
 
 <script>
     let audioCtx = null;
+    let bgMusicInterval = null;
+    let isMusicPlaying = false;
 
+    // Web Audio API Soundeffekte für richtig/falsch
     function playSound(type) {
         try {
             if (!audioCtx) {
@@ -210,101 +243,125 @@
         }
     }
 
+    // Dezente, beruhigende Hintergrundmelodie (Pentatonik-Arpeggio im Loop)
+    function toggleBackgroundMusic() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const btn = document.getElementById('bg-audio-btn');
+
+        if (isMusicPlaying) {
+            clearInterval(bgMusicInterval);
+            bgMusicInterval = null;
+            isMusicPlaying = false;
+            btn.innerText = "Musik einschalten";
+            btn.style.backgroundColor = "#4a5d4e";
+        } else {
+            isMusicPlaying = true;
+            btn.innerText = "Musik ausschalten";
+            btn.style.backgroundColor = "#a64d79";
+
+            const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C-Dur pentatonisch (sanft und harmonisch)
+            let step = 0;
+
+            bgMusicInterval = setInterval(() => {
+                if (!isMusicPlaying) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = notes[Math.floor(Math.random() * notes.length)];
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    const now = audioCtx.currentTime;
+                    gain.gain.setValueAtTime(0.03, now); // Sehr dezent im Hintergrund
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    
+                    osc.start(now);
+                    osc.stop(now + 1.5);
+                } catch(e) {}
+            }, 3000); // Alle 3 Sekunden ein sanfter Ton
+        }
+    }
+
+    // Erweiterter Fragenkatalog (Bauernwissen + Schmiedehandwerk + Situationsentscheidungen)
     const allQuestions = [
-        // Flächenmaße & Maße
+        // --- SCHMIEDEHANDWERK & PFLÜGE ---
+        { question: "Was machte der Schmied traditionell mit einer abgenutzten oder stumpfen Pflugschar?", options: ["Er warf sie sofort weg", "Er schärfte und hämmerte sie im heißen Zustand in der Feldschmiede wieder aus", "Er goss sie komplett neu aus Plastik", "Er strich sie mit Öl an"], correct: 1, explanation: "Richtig! Die Pflugschar wurde im Feuer erhitzt und auf dem Amboss vom Schmied fachmännisch ausgeschmiedet und nachgeschärft." },
+        { question: "Wofür wurde der Amboss in der Dorfschmiede hauptsächlich verwendet?", options: ["Als Sitzgelegenheit für den Meister", "Als massive, stählerne Unterlage zum Bearbeiten, Schmieden und Biegen von glühendem Eisen", "Zum Aufbewahren von Hufeisen", "Als Messgerät für Getreide"], correct: 1, explanation: "Richtig! Der Amboss ist das Herzstück der Schmiede, das den Wumms der Hammerschläge aufnimmt." },
+        { question: "Welches Gerät nutzte der Schmied, um das Feuer in der Feldesse kräftig anzufachen?", options: ["Einen Fächer", "Den Blasebalg (oder ein elektrisches Windgebläse)", "Einen Wassereimer", "Einen großen Holzdeckel"], correct: 1, explanation: "Richtig! Durch das Einblasen von Luft mit dem Blasebalg stieg die Temperatur in der Esse so stark an, dass Eisen glühte." },
+        { question: "Warum musste der Schmied ein glühendes Hufeisen oder Werkstück nach der Bearbeitung im Wasser ‚abschrecken‘?", options: ["Damit es sofort wieder weich wird", "Um das Metall durch schnelles Abkühlen zu härten", "Damit es nicht rostet", "Um den Ruß abzuwaschen"], correct: 1, explanation: "Richtig! Das Abschrecken in Wasser oder Öl verändert die Kristallstruktur des Stahls und sorgt für die nötige Härte." },
+        { question: "Was verstand man unter dem ‚Zunder‘ in der Schmiede?", options: ["Teure Schmiedekohle", "Die abfallende Metalloxidschicht (Zunder), die beim Hämmern von glühendem Eisen abplatzt", "Ein spezielles Werkzeug zum Messen", "Das Bier des Schmieds"], correct: 1, explanation: "Richtig! Beim Erhitzen und Schlagen bildet sich Zunder auf der Eisenoberfläche." },
+        { question: "Welches Handwerk war für das Aufbringen von Eisenreifen auf hölzerne Wagenräder (Bereifung) zuständig?", options: ["Der Stellmacher (Wagner) zusammen mit dem Schmied", "Der Müller", "Der Bäcker", "Der Schuster"], correct: 0, explanation: "Richtig! Der Wagner baute das Holzrad, und der Schmied schrumpfte den glühenden Eisenreifen passgenau auf." },
+        { question: "Wie nannte man den schweren Hammer des Schmieds, den er meist mit beiden Händen schwang?", options: ["Den Schlegel oder Vorschlaghammer", "Den Uhrmacherhammer", "Den kleinen Nagelhammer", "Die Kneifzange"], correct: 0, explanation: "Richtig! Der Vorschlaghammer wurde für schwere Verformungsarbeiten am Amboss gebraucht." },
+        { question: "Warum schärfte man Pflugscharen und Eggenzinken regelmäßig beim Schmied?", options: ["Damit der Schlepper weniger Sprit verbraucht", "Weil stumpfe Scharen den Boden nur verdichten statt ihn sauber zu schneiden und zu wenden", "Damit sie im Dunkeln leuchten", "Nur zur Traditionspflege"], correct: 1, explanation: "Richtig! Eine scharfe Pflugschar schneidet leicht durch die Scholle und spart Zugkraft." },
+
+        // --- SITUATIONSABHÄNGIGE ENTSCHEIDUNGEN ---
+        { question: "Du willst am Morgen Heu machen und einfahren, aber der Wetterbericht meldet für den späten Nachmittag unbeständigen Regen. Wie gehst du vor?", options: ["Trotzdem mähen und hoffen", "Den Schnitt auf den nächsten Sonnentag verschieben, da feuchtes Heu im Stock verdirbt", "Nur im Schatten mähen", "Das Gras sofort anzünden"], correct: 1, explanation: "Richtig! Feuchtes Heu schimmelt im Stock oder kann sich durch Gärung entzünden. Bei Regengefahr wird nicht gemäht." },
+        { question: "Du arbeitest auf dem Feld und am Horizont türmen sich bedrohliche Gewitterwolken auf. Was machst du mit dem Schlepper oder Metallgeräten?", options: ["Sich unter einzeln stehende Eichen stellen", "Unbeirrt weiterarbeiten", "Sofort offene Metallgeräte und den Schlepper verlassen und Schutz in einem Gebäude oder einer Senke suchen", "Sich auf den Metallwagen setzen"], correct: 2, explanation: "Richtig! Einzelbäume ziehen Blitze an, und auf offenem Feld mit Metallgeräten herrscht Lebensgefahr." },
+        { question: "Die Kühe stehen auf der Weide, als ein heftiger Hagelsturm mit eisigem Wind einbricht. Was tust du?", options: ["Sie sich selbst überlassen", "Den Stall öffnen, falls nah, oder prüfen, ob sie natürlichen Schutz unter Bäumen finden", "Sie mit Steinen auseinandertreiben", "Sie einzeln nach Hause treiben"], correct: 1, explanation: "Richtig! Bei Hagel und Panik suchen Tiere Schutz; wenn möglich, öffnet man den Stall oder prüft Unterstände." },
+        { question: "Nach starkem Dauerregen läuft Wasser in den alten Keller, in dem Kartoffeln lagern. Was ist die allererste Sofortmaßnahme?", options: ["Sofort das Licht einschalten", "Die elektrischen Sicherungen für den Kellerbereich ausschalten, um einen Kurzschluss zu verhindern", "Die Kartoffeln wegwerfen", "Mit einer defekten Pumpe arbeiten"], correct: 1, explanation: "Richtig! Wenn Wasser auf Steckdosen trifft, droht tödlicher Stromschlag. Zuerst den Strom ausschalten!" },
+        { question: "Du willst Stalldung ausmisten, aber die Gabel verhakt sich im harten Untergrund. Wie löst du das ergonomisch?", options: ["Mit voller Wucht am Stiel reißen bis er bricht", "Mit dem Fuß nachhelfen und das Material mit einem kurzen, kontrollierten Hebel aus den Gelenken lösen", "Mit bloßen Händen graben", "Wasser in den Stall kippen"], correct: 1, explanation: "Richtig! Wer aus dem Rücken statt aus den Beinen hebt, riskiert sofort einen Hexenschuss." },
+        { question: "Der Wetterdienst meldet Spätfrost für eine klare Nacht, und die Apfelbäume blühen bereits. Was konnte man traditionell tun?", options: ["Die Bäume mit eiskaltem Wasser abspritzen", "Kleinere Feuer (Frostfeuer) in den Baumgassen anzünden, um kalte Luftschichten zu durchbrechen", "Alle Äste absägen", "Die Blüten mit Erde bewerfen"], correct: 1, explanation: "Richtig! Frostfeuer oder Räuchern waren klassische Mittel gegen das Absinken der Frostluft." },
+        { question: "Im Wald hast du Rundholz aufgeschichtet, aber der Stapel fängt an, nach vorne zu rutschen. Was tust du auf gar keinen Fall?", options: ["Sich in den Gefahrenbereich vor den rutschenden Stapel stellen, um ihn aufzuhalten", "Sofort zur Seite springen", "Den Stapel sich selbst überlassen", "Weglaufen"], correct: 0, explanation: "Richtig! Niemals versuchen, einen rollenden Holzstapel mit Muskelkraft aufzuhalten – das führt zu schwersten Quetschungen." },
+        { question: "Ein neugeborenes Kalb trinkt am ersten Tag nicht bei der Mutter. Wie reagiert der erfahrene Landwirt?", options: ["Bis zum nächsten Tag warten", "Sofort die lebenswichtige Biestmilch (Colostrum) sichern und notfalls mit der Flasche eingeben", "Das Kalb aus dem Stall werfen", "Ihm Leitungswasser geben"], correct: 1, explanation: "Richtig! Ohne die Antikörper aus der Kolostralmilch hat das Kalb keine Immunabwehr." },
+        { question: "Die Sense zieht nicht mehr richtig und knickt das Gras nur ab. Was ist zu tun?", options: ["Noch fester drücken und rennen", "Die Sense mit dem Wetzstein im Feld abziehen und schärfen", "Das Sensenblatt wegwerfen", "Den Holzstiel austauschen"], correct: 1, explanation: "Richtig! Wenn die Schneide stumpf wird, hilft nur das regelmäßige Abziehen mit dem Wetzstein." },
+        { question: "Bei der Feldarbeit fängt der Kühler des alten Schleppers an zu kochen. Wie verhält man sich?", options: ["Sofort den heißen Kühlerdeckel mit bloßen Händen aufreißen", "Den Motor im Leerlauf etwas weiterlaufen lassen und keinesfalls sofort den heißen Druckdeckel öffnen", "Eiswasser in den heißen Motor schütten", "Vollgas geben"], correct: 1, explanation: "Richtig! Durch Druck kocht das Wasser; reißt man den Deckel auf, explodiert Dampf ins Gesicht. Abkühlen lassen!" },
+
+        // --- FLÄCHENMAßE & MAßE ---
         { question: "Wie viele Quadratmeter (m²) entsprechen genau 30 Hektar (ha)?", options: ["3.000 m²", "30.000 m²", "300.000 m²", "3.000.000 m²"], correct: 2, explanation: "Richtig! 1 Hektar sind 10.000 m², folglich sind 30 Hektar 300.000 m²." },
         { question: "Wie viel sind 50 Hektar in Ar (a) umgerechnet?", options: ["50 Ar", "500 Ar", "5.000 Ar", "50.000 Ar"], correct: 2, explanation: "Richtig! 1 Hektar sind 100 Ar. 50 Hektar ergeben 5.000 Ar." },
         { question: "Wie viele Hektar entsprechen 100.000 Quadratmetern?", options: ["1 Hektar", "10 Hektar", "100 Hektar", "1.000 Hektar"], correct: 1, explanation: "Richtig! 10.000 m² sind 1 Hektar, also sind 100.000 m² genau 10 Hektar." },
         { question: "Was entsprach im hessischen Raum historisch grob einem ‚Morgen‘ Land?", options: ["Etwa 250 m²", "Etwa 2.500 m²", "Genau 10.000 m²", "Einen halben Hektar"], correct: 1, explanation: "Richtig! Ein Morgen war die Fläche, die ein Gespann an einem Vormittag pflügen konnte (ca. 2.500 m²)." },
         { question: "Wie viele Quadratmeter hat ein ‚Ar‘ (a)?", options: ["10 m²", "100 m²", "1.000 m²", "10.000 m²"], correct: 1, explanation: "Richtig! Ein Ar entspricht genau 100 Quadratmetern (10m x 10m)." },
         { question: "Wenn ein Acker 4 Hektar groß ist, wie viele Ar sind das?", options: ["40 Ar", "400 Ar", "4.000 Ar", "40.000 Ar"], correct: 1, explanation: "Richtig! 1 Hektar = 100 Ar, also haben 4 Hektar genau 400 Ar." },
-        { question: "Was ist ein ‚Klafter‘ in alten Maßen traditionell gewesen?", options: ["Ein Gewichtsmaß für Getreide", "Ein Längen- oder Volumenmaß (Abstand der ausgestreckten Arme)", "Eine alte Steuer auf Schweine", "Die Tiefe eines Brunnens"], correct: 1, explanation: "Richtig! Ein Klafter bezeichnete oft den Abstand der ausgestreckten Arme (ca. 1,75 bis 2 Meter) oder ein Raummaß für Holz." },
+        { question: "Was ist ein ‚Klafter‘ in alten Maßen traditionell gewesen?", options: ["Ein Gewichtsmaß für Getreide", "Ein Längen- oder Volumenmaß (Abstand der ausgestreckten Arme)", "Eine alte Steuer auf Schweine", "Die Tiefe eines Brunnens"], correct: 1, explanation: "Richtig! Ein Klafter bezeichnete oft den Abstand der ausgestreckten Arme oder ein Raummaß für Holz." },
         { question: "Wie viel Kubikmeter (m³) sind 10 Festmeter reines Holz grob?", options: ["Genau 5 m³", "Genau 10 m³", "Genau 15 m³", "Etwa 20 m³"], correct: 1, explanation: "Richtig! Ein Festmeter entspricht exakt 1 Kubikmeter fester Holzmasse ohne Rinde und Zwischenräume." },
         { question: "Was ist der Hauptunterschied zwischen Festmeter (fm) und Raummeter (rm)?", options: ["Festmeter enthält Luftzwischenräume", "Raummeter enthält geschichtetes Rundholz mit Luftzwischenräumen", "Es gibt keinen Unterschied", "Festmeter gilt nur für Nadelholz"], correct: 1, explanation: "Richtig! Der Raummeter misst den Stapel inklusive Luftzwischenräume, der Festmeter nur das reine Holzvolumen." },
         { question: "Wie viel ‚Schock‘ waren es, wenn früher Eier oder Ziegel in Schock gezählt wurden?", options: ["12 Stück", "20 Stück", "60 Stück", "100 Stück"], correct: 2, explanation: "Richtig! Ein Schock entsprach traditionell immer genau 60 Stück." },
 
-        // Forstwirtschaft & Holz
+        // --- FORSTWIRTSCHAFT & HOLZ ---
         { question: "Was versteht man unter einem ‚Raummeter‘ (rm) geschichtetem Holz?", options: ["1 m³ reines Holz ohne Rinde", "1 m³ geschichtetes Rundholz inklusive Luftzwischenräume", "100 Ster", "Ein Holzstapel von 5 Metern Länge"], correct: 1, explanation: "Richtig! Ein Raummeter ist ein Würfel von 1m x 1m x 1m geschichtetem Holz inklusive Zwischenräumen." },
-        { question: "Welches Holz war im bäuerlichen Fachwerkbau wegen seiner Dauerhaftigkeit besonders begehrt?", options: ["Fichte", "Pappel", "Eiche", "Weide"], correct: 2, explanation: "Richtig! Eichenholz ist extrem robust, witterungsbeständig und verrottet im Boden oder an Luft nur sehr langsam." },
-        { question: "Wann im Jahr wurden Stämme früher traditionell gefällt (Mondphase / Saftruhe)?", options: ["Im Hochsommer bei voller Blüte", "Im Spätwinter bei Saftruhe des Baumes", "Im Frühregen im April", "Immer an Neumond im Herbst"], correct: 1, explanation: "Richtig! Im Winter ruht der Baum, das Holz enthält weniger Feuchtigkeit, reißt weniger und fault nicht so schnell." },
+        { question: "Welches Holz war im bäuerlichen Fachwerkbau wegen seiner Dauerhaftigkeit besonders begehrt?", options: ["Fichte", "Pappel", "Eiche", "Weide"], correct: 2, explanation: "Richtig! Eichenholz ist extrem robust, witterungsbeständig und verrottet im Boden nur sehr langsam." },
+        { question: "Wann im Jahr wurden Stämme früher traditionell gefällt (Saftruhe)?", options: ["Im Hochsommer bei voller Blüte", "Im Spätwinter bei Saftruhe des Baumes", "Im Frühregen im April", "Immer an Neumond im Herbst"], correct: 1, explanation: "Richtig! Im Winter ruht der Baum, das Holz enthält weniger Feuchtigkeit und reißt weniger." },
         { question: "Was ist ein ‚Polter‘ im Wald?", options: ["Ein spezielles Fällbeil", "Ein sauber aufgeschichteter Stapel Stammholz am Wegesrand", "Ein forstwirtschaftlicher Weg", "Ein Baumschädling"], correct: 1, explanation: "Richtig! Als Polter bezeichnet man die am Weg aufgeschichteten Holzstämme zum Abtransport." },
         { question: "Welcher Baum hat die botanische Bezeichnung *Fagus sylvatica* und prägt viele deutsche Mittelgebirge?", options: ["Fichte", "Rotbuche", "Stieleiche", "Gemeine Kiefer"], correct: 1, explanation: "Richtig! Fagus sylvatica ist die Rotbuche, der klassische Laubbaum unserer heimischen Wälder." },
-        { question: "Was bedeutet das ‚Durchforsten‘ eines Waldes?", options: ["Komplettes Roden aller Bäume", "Entfernen kranker oder schwächerer Bäume, damit die starken mehr Licht bekommen", "Neupflanzung von Sträuchern am Waldrand", "Anlegen von Gräben zur Entwässerung"], correct: 1, explanation: "Richtig! Bei der Durchforstung wird der Bestand gepflegt und ausgedünnt." },
-        { question: "Welches Werkzeug wurde früher zum manuellen Ablängen von dicken Stämmen im Wald von zwei Männern genutzt?", options: ["Bügelsäge", "Enorm lange Handsäge (Fuchsschwanz / Schrotsäge)", "Astschere", "Beil"], correct: 1, explanation: "Richtig! Die Schrotsäge (oder Zugsäge) wurde von zwei Holzhauern im Wechsel gezogen." },
-        { question: "Was ist ‚Schlagabraum‘ im Wald?", options: ["Geklautes Holz", "Astwerk und Wipfelholz, das nach der Holzernte im Wald zurückbleibt", "Die Rinde der gefällten Bäume", "Sägemehl"], correct: 1, explanation: "Richtig! Schlagabraum sind die Reste, die traditionell als Leseholz von der Bevölkerung eingesammelt werden durften." },
-        { question: "Welches Tier gilt im Wald als wichtigster natürlicher Verjüngungshelfer für Eichen, indem es Eichelvorräte im Boden vergisst?", options: ["Das Wildschwein", "Der Eichelhäher", "Der Fuchs", "Das Eichhörnchen"], correct: 1, explanation: "Richtig! Der Eichelhäher versteckt Tausende Eichelsaison-Vorräte und vergisst viele davon, woraus junge Eichen wachsen." },
-        { question: "Was versteht man unter ‚Kiefernharz‘, das früher gewerblich gewonnen wurde?", options: ["Ein natürlicher Dünger", "Klebriges Sekret von Kiefern (Pech), das früher ‚gepicht‘ wurde", "Holzkohlenstaub", "Harzöle zum Kochen"], correct: 1, explanation: "Richtig! Die Harznutzung (Pecherei) war früher ein wichtiger Waldzweig." },
+        { question: "Was bedeutet das ‚Durchforsten‘ eines Waldes?", options: ["Komplettes Roden aller Bäume", "Entfernen kranker oder schwächerer Bäume, damit die starken mehr Licht bekommen", "Neupflanzung von Sträuchern", "Anlegen von Gräben"], correct: 1, explanation: "Richtig! Bei der Durchforstung wird der Bestand gepflegt und ausgedünnt." },
+        { question: "Welches Werkzeug wurde früher zum manuellen Ablängen von dicken Stämmen im Wald von zwei Männern genutzt?", options: ["Bügelsäge", "Schrotsäge / Zugsäge", "Astschere", "Beil"], correct: 1, explanation: "Richtig! Die Schrotsäge wurde von zwei Holzhauern im Wechsel gezogen." },
+        { question: "Was ist ‚Schlagabraum‘ im Wald?", options: ["Geklautes Holz", "Astwerk und Wipfelholz, das nach der Holzernte zurückbleibt", "Die Rinde", "Sägemehl"], correct: 1, explanation: "Richtig! Schlagabraum sind die Reste, die traditionell als Leseholz gesammelt werden durften." },
+        { question: "Welches Tier gilt im Wald als wichtigster natürlicher Verjüngungshelfer für Eichen?", options: ["Das Wildschwein", "Der Eichelhäher", "Der Fuchs", "Das Eichhörnchen"], correct: 1, explanation: "Richtig! Der Eichelhäher versteckt Tausende Eichelvorräte und vergisst viele davon, woraus Eichen wachsen." },
 
-        // Feldarbeit, Ackerbau & Boden
-        { question: "Was bedeutet es, wenn ein Acker in der Dreifelderwirtschaft ‚brachlag‘?", options: ["Er wurde mit Steinen bedeckt", "Er wurde ein Jahr lang nicht besät, damit sich der Boden erholen konnte", "Er wurde im Winter geflutet", "Er wurde komplett mit Klee bepflanzt"], correct: 1, explanation: "Richtig! Die Brache diente der Regeneration der Nährstoffe und der Unkrautbekämpfung." },
+        // --- FELDBAU & ACKERBAU ---
+        { question: "Was bedeutet es, wenn ein Acker in der Dreifelderwirtschaft ‚brachlag‘?", options: ["Er wurde mit Steinen bedeckt", "Er wurde ein Jahr lang nicht besät, damit sich der Boden erholen konnte", "Er wurde geflutet", "Er wurde mit Klee bepflanzt"], correct: 1, explanation: "Richtig! Die Brache diente der Regeneration der Nährstoffe und der Unkrautbekämpfung." },
         { question: "Welches alte Gerät diente zum Zerkleinern der Erdklumpen nach dem Pflügen?", options: ["Die Egge", "Die Sichel", "Der Pflug", "Die Hacke"], correct: 0, explanation: "Richtig! Die Egge wurde über den gepflugten Acker gezogen, um das Saatbett zu ebnen." },
-        { question: "Warum pflügten die Bauern im späten Herbst die Felder oft ‚in Furchen tief um‘ (Winterfurche)?", options: ["Damit der Frost die groben Erdschollen sprengt und feine Krume entsteht", "Damit das Wasser im Sommer besser abfließt", "Um Mäuse anzulocken", "Um die Steine nach oben zu holen"], correct: 0, explanation: "Richtig! Der Frost sprengt die harten Schollen auf, sodass im Frühjahr ein feinkrümeliges Saatbett entsteht." },
-        { question: "Was ist Mist (Stalldung) traditionell für die Landwirtschaft?",options: ["Unnötiger Abfall", "Wertvoller organischer Dünger aus Kot, Urin und Stroh", "Nur Tierfutter", "Ein Mittel gegen Schädlinge"], correct: 1, explanation: "Richtig! Stalldung liefert wichtige Nährstoffe (Stickstoff, Phosphor, Kali) und Humus für den Boden." },
-        { question: "Welche Fruchtfolge war typisch für die klassische Dreifelderwirtschaft?", options: ["Kartoffeln – Mais – Weizen", "WinterGetreide – SommerGetreide – Brache", "Nur Weizen jedes Jahr", "Klee – Rüben – Roggen – Hafer"], correct: 1, explanation: "Richtig! Winterung, Sommerung und Brache wechselten sich im Dreijahresrhythmus ab." },
-        { question: "Was ist eine ‚Harke‘ oder ein ‚Rechen‘?", options: ["Ein Gerät zum Schneiden von Getreide", "Ein Werkzeug zum Zusammenharken von Heu oder Stroh", "Ein tiefer Spaten", "Ein Dreschwerkzeug"], correct: 1, explanation: "Richtig! Der Rechen dient dem Zusammenrechen von Schnittgut." },
-        { question: "Welches Getreide galt im Mittelalter und auf ärmeren Böden als das wichtigste Brotgetreide?", options: ["Weizen", "Roggen", "Mais", "Reis"], correct: 1, explanation: "Richtig! Roggen wächst auch auf sandigen, kargen Böden und im rauen Klima hervorragend." },
-        { question: "Was versteht man unter ‚Dengeln‘ bei der Sense?", options: ["Das Schleifen mit einem Naturstein", "Das hämmernde Verdichten und Ausdünnen der Schneide auf dem Dengelstock", "Das Ölen des Holzstiels", "Das Nachspannen der Klinge"], correct: 1, explanation: "Richtig! Durch das Dengeln wird die Schneide hauchdünn ausgeschmiedet." },
-        { question: "Wofür wurde der Worb (Sensenbaum) traditionell genutzt?", options: ["Als Haltegriff für den Pflug", "Als geschwungener Holzstiel, an dem das Sensenblatt befestigt wird", "Als Dreschflegelschaft", "Als Zaunpfahl"], correct: 1, explanation: "Richtig! Der Worb ist der ergonomisch geformte Holzstiel der Sense." },
-        { question: "Was ist das ‚Dreschen‘ von Getreide?", options: ["Das Säen im Frühjahr", "Das Trennen der Körner von den Ähren und der Spreu", "Das Mahlen in der Mühle", "Das Backen von Brot"], correct: 1, explanation: "Richtig! Beim Dreschen (früher mit dem Dreschflegel) werden die Getreidekörner aus der Hülle gelöst." },
+        { question: "Warum pflügten die Bauern im späten Herbst die Felder oft in ‚Winterfurche‘ um?", options: ["Damit der Frost die groben Erdschollen sprengt und feine Krume entsteht", "Damit Wasser im Sommer abfließt", "Um Mäuse anzulocken", "Um Steine nach oben zu holen"], correct: 0, explanation: "Richtig! Der Frost sprengt die Schollen auf, sodass im Frühjahr ein feinkrümeliges Saatbett entsteht." },
+        { question: "Was ist Mist (Stalldung) traditionell für die Landwirtschaft?", options: ["Unnötiger Abfall", "Wertvoller organischer Dünger aus Kot, Urin und Stroh", "Nur Tierfutter", "Ein Pflanzenschutzmittel"], correct: 1, explanation: "Richtig! Stalldung liefert wichtige Nährstoffe und wertvollen Humus für den Boden." },
+        { question: "Welche Fruchtfolge war typisch für die klassische Dreifelderwirtschaft?", options: ["Kartoffeln – Mais – Weizen", "WinterGetreide – SommerGetreide – Brache", "Nur Weizen jedes Jahr", "Klee – Rüben – Roggen"], correct: 1, explanation: "Richtig! Winterung, Sommerung und Brache wechselten sich im Dreijahresrhythmus ab." },
+        { question: "Was versteht man unter ‚Dengeln‘ bei der Sense?", options: ["Das Schleifen mit Stein", "Das hämmernde Verdichten und Ausdünnen der Schneide auf dem Dengelstock", "Das Ölen", "Das Spannen"], correct: 1, explanation: "Richtig! Durch das Dengeln wird die Schneide hauchdünn ausgeschmiedet." },
+        { question: "Wofür wurde der Worb (Sensenbaum) traditionell genutzt?", options: ["Als Haltegriff für den Pflug", "Als geschwungener Holzstiel für das Sensenblatt", "Als Dreschflegelschaft", "Als Zaunpfahl"], correct: 1, explanation: "Richtig! Der Worb ist der ergonomisch geformte Holzstiel der Sense." },
+        { question: "Was ist das ‚Dreschen‘ von Getreide?", options: ["Das Säen", "Das Trennen der Körner von den Ähren und der Spreu", "Das Mahlen", "Das Backen"], correct: 1, explanation: "Richtig! Beim Dreschen werden die Getreidekörner aus der Hülle gelöst." },
 
-        // Viehzucht & Tiere auf dem Hof
-        { question: "Wie nennt man den weiblichen, ausgewachsenen Rinder-Elterntier, das noch kein Kalb hatte?", options: ["Kuh", "Färse (oder Kalbe)", "Bulle", "Ochse"], correct: 1, explanation: "Richtig! Eine Färse (in manchen Regionen Kalbe) ist eine weibliche, noch nicht gekalbte Rinderin." },
-        { question: "Was ist ein kastriertes männliches Rind, das früher als kräftiges Zugtier vor dem Wagen spannte?", options: ["Ein Bulle", "Ein Ochse", "Ein Stier", "Ein Kalb"], correct: 1, explanation: "Richtig! Der Ochse ist ein kastrierter männlicher Rind, der wegen seiner Ausgeglichenheit als Arbeitstier geschätzt wurde." },
-        { question: "Welche Tiere wurden auf dem Bauernhof traditionell als ‚Mistmacher‘ bezeichnet?", options: ["Die Gänse", "Die Schweine", "Die Ziegen", "Die Bienen"], correct: 1, explanation: "Richtig! Schweine wühlten viel und lieferten durch ihren Strohbedarf und Kot exzellenten Stallmist." },
+        // --- VIEHZUCHT & HOF ---
+        { question: "Wie nennt man das weibliche Rind, das noch kein Kalb hatte?", options: ["Kuh", "Färse (oder Kalbe)", "Bulle", "Ochse"], correct: 1, explanation: "Richtig! Eine Färse ist eine weibliche, noch nicht gekalbte Rinderin." },
+        { question: "Was ist ein kastriertes männliches Rind, das früher als Zugtier diente?", options: ["Ein Bulle", "Ein Ochse", "Ein Stier", "Ein Kalb"], correct: 1, explanation: "Richtig! Der Ochse ist ein kastriertes Rind, das wegen seiner Ausgeglichenheit als Arbeitstier geschätzt wurde." },
+        { question: "Welche Tiere wurden auf dem Bauernhof traditionell als ‚Mistmacher‘ bezeichnet?", options: ["Gänse", "Schweine", "Ziegen", "Bienen"], correct: 1, explanation: "Richtig! Schweine wühlten viel und lieferten durch ihren Strohbedarf und Kot exzellenten Stallmist." },
         { question: "Wie viele Mägen hat ein Wiederkäuer wie die Hauskuh?", options: ["Einen", "Zwei", "Drei", "Vier"], correct: 3, explanation: "Richtig! Sie besitzen Pansen, Netzmagen, Blättermagen und Labmagen." },
-        { question: "Was bedeutet es, wenn eine Kuh ‚trächtig‘ ist?", options: ["Sie gibt Milch", "Sie erwartet ein Kalb", "Sie ist krank", "Sie ist im Sommer auf der Weide"], correct: 1, explanation: "Richtig! Trächtig bezeichnet die Schwangerschaft bei Tieren." },
-        { question: "Wann gibt eine Kuh Milch?", options: ["Immer ab dem ersten Lebensjahr", "Nur nach dem Kalben (Nährungsphase / Laktation)", "Im Winter gar nicht", "Nur wenn sie mit Kraftfutter gefüttert wird"], correct: 1, explanation: "Richtig! Milchproduktion setzt wie bei allen Säugetieren die Geburt eines Kalbes voraus." },
-        { question: "Was ist ein ‚Ferkel‘?", options: ["Ein junges Schaf", "Ein junges Schwein", "Ein junges Rind", "Ein junges Pferd"], correct: 1, explanation: "Richtig! Ferkel nennt man die Jungtiere des Hausschweins." },
-        { question: "Welches Geflügel hielt man auf dem Hof vor allem wegen der Eier und des sonntäglichen Bratens?", options: ["Strauße", "Hühner", "Pfauen", "Schwäne"], correct: 1, explanation: "Richtig! Das Haushuhn war der klassische Hofbewohner." },
-        { question: "Wie nannte man das traditionelle Zugpferd auf vielen Höfen, bevor der Traktor kam?", options: ["Vollblut", "Kaltblüter (schwere Arbeitspferde)", "Pony", "Shetty"], correct: 1, explanation: "Richtig! Schwere Kaltblüter (wie Rheinisch-Deutsches Kaltblut) zogen Pflüge und schwere Wagen." },
-        { question: "Was ist die ‚Schafschur‘?", options: ["Das Schlachten der Schafe", "Das Scheren der Sommerwolle im Frühjahr", "Das Treiben der Schafe in den Stall", "Das Markieren der Ohren"], correct: 1, explanation: "Richtig! Im Frühjahr wurde den Schafen die dicke Winterwolle geschoren." },
+        { question: "Wann gibt eine Kuh Milch?", options: ["Immer ab dem ersten Jahr", "Nur nach dem Kalben (Laktation)", "Im Winter gar nicht", "Nur bei Kraftfutter"], correct: 1, explanation: "Richtig! Milchproduktion setzt wie bei allen Säugetieren die Geburt eines Kalbes voraus." },
+        { question: "Wie nannte man das traditionelle schwere Zugpferd auf vielen Höfen?", options: ["Vollblut", "Kaltblüter (schwere Arbeitspferde)", "Pony", "Shetty"], correct: 1, explanation: "Richtig! Schwere Kaltblüter zogen Pflüge und schwere Erntewagen." },
 
-        // Obstbau, Garten & Ernährung
-        { question: "Was ist der traditionelle Sinn des ‚Kronenschnitts‘ bei Apfelbäumen im Spätwinter?", options: ["Den Baum zu töten", "Licht in die Krone zu lassen, altes Holz zu entfernen und den Ertrag zu sichern", "Die Rinde vor Frost zu schützen", "Die Wurzeln zu stärken"], correct: 1, explanation: "Richtig! Der fachgerechte Winterschnitt sorgt für gesunde Bäume und gute Ernte." },
-        { question: "Was ist eine ‚Streuobstwiese‘?", options: ["Ein intensiv gedüngter Apfelplantagen-Acker", "Eine traditionelle Form des Obstanbaus mit hochstämmigen, verstreuten Obstbäumen verschiedener Sorten", "Ein reiner Beerengarten", "Ein abgeholzter Waldstreifen"], correct: 1, explanation: "Richtig! Streuobstwiesen sind artenreiche, ökologische Kulturlandschaften mit hochstämmigen Bäumen." },
-        { question: "Welches Gemüse wurde auf vielen Höfen im großen Stil angebaut und im Herbst eingekocht oder sauer eingelegt?", options: ["Ananas", "Weißkohl (für Sauerkraut)", "Banane", "Avocado"], correct: 1, explanation: "Richtig! Weißkohl wurde fermentiert und ergab das vitaminreiche Sauerkraut für den Winter." },
-        { question: "Wofür wurde der ‚Rhabarber‘ im bäuerlichen Bauerngarten traditionell genutzt?", options: ["Als giftige Zierpflanze", "Für frühe saure Kuchenfüllungen und Kompott im Frühjahr", "Als Viehfutter", "Zum Färben von Stoffen"], correct: 1, explanation: "Richtig! Rhabarber lieferte im Frühjahr als eines der ersten Frische-Gewächse saure Stängel." },
-        { question: "Was machte man im Herbst traditionell mit den Äpfeln, die nicht gelagert werden konnten?", options: ["Sie wurden weggeworfen", "Sie wurden zur Mosterei gebracht und zu Apfelwein oder Saft gepresst", "Sie wurden verbrannt", "Sie wurden an Fische verfüttert"], correct: 1, explanation: "Richtig! Das Mosten war im Herbst auf dem Land ein zentraler Arbeitsgang." },
-        { question: "Was ist ein ‚Frühbeet‘ im Garten?", options: ["Ein Bett aus Daunen", "Ein mit Glas oder Folie abgedeckter, flacher Kasten zur vorgezogenen Anpflanzung", "Ein Gewächshaus mit Heizung", "Ein Komposthaufen"], correct: 1, explanation: "Richtig! Das Frühbeet nutzt die Sonnenwärme, um Salat und Gemüse im zeitigen Frühjahr vorzuziehen." },
-        { question: "Wofür nutzte man früher Brennnesseln auf dem Hof oft?", options: ["Als Haustierfutter für Hunde", "Als Jauche (Pflanzenjauche) zur Stärkung von Gemüsepflanzen und gegen Läuse", "Als Dachbedeckung", "Zum Brotbacken"], correct: 1, explanation: "Richtig! Brennnesseljauche ist ein klassischer, nährstoffreicher Bio-Dünger." },
-        { question: "Was bedeutet ‚Mulchen‘ im Gartenbau?", options: ["Den Boden tief umgraben", "Den Boden mit Schnittgut oder Stroh bedecken, um Feuchtigkeit zu halten und Unkraut zu hemmen", "Pflanzen mit Gift besprühen", "Den Rasen extrem kurz mähen"], correct: 1, explanation: "Richtig! Mulchen schützt den Boden vor Austrocknung und Erosion." },
-        { question: "Welche Kartoffelsorte pflanzte man traditionell, wenn man sie früh im Sommer ernten wollte?", options: ["Spätkartoffeln", "Frühkartoffeln", "Lagerkartoffeln", "Industriekartoffeln"], correct: 1, explanation: "Richtig! Frühkartoffeln wurden zeitig gesteckt für die Sommerernte." },
-        { question: "Was ist ein ‚Komposthaufen‘ auf dem Hof?", options: ["Ein Müllplatz für Plastik", "Ein Ort, an dem Garten- und Küchenabfälle zu wertvoller Humuserde verrotten", "Ein Holzlager", "Ein Lager für Getreidesäcke"], correct: 1, explanation: "Richtig! Kompost ist das schwarze Gold des Gärtners." },
-
-        // Maschinen, Gebäude & Traditionen
-        { question: "Welches legendäre deutsche Traktormodell der Nachkriegszeit wurde von Lanz in Mannheim gebaut?", options: ["Der Lanz Bulldog", "Der Porsche Diesel", "Der Fendt Dieselross", "Der Deutz Traktor"], correct: 0, explanation: "Richtig! Der Lanz Bulldog mit seinem Glühkopfmotor war jahrzehntelang das Synonym für Traktor schlechthin." },
-        { question: "Was war ein ‚Dreschschuppen‘ oder eine ‚Scheune‘?", options: ["Ein Wohnhaus", "Ein großes Gebäude zur Lagerung von Getreide, Heu und Gerätschaften", "Ein Stall für Schweine", "Eine Schmiede"], correct: 1, explanation: "Richtig! Die Scheune war das Herzstück für die Erntebergung." },
-        { question: "Wozu diente der ‚Mistkloake‘- oder Güllegrube hinter dem Stall?", options: ["Zum Schwimmen", "Zum Sammeln von Flüssigdüngemitteln (Jauche und Gülle) für die Felder", "Als Trinkwasserreservoir", "Zum Waschen von Wäsche"], correct: 1, explanation: "Richtig! Die Güllegrube fing die flüssigen Nährstoffe auf." },
-        { question: "Was ist ein ‚Leiterwagen‘?", options: ["Ein Auto", "Ein holzgeschnittener Transportwagen mit hochstehenden, leiterartigen Seitenwänden", "Eine transportable Treppe", "Ein Anhänger für Fahrräder"], correct: 1, explanation: "Richtig! Der Leiterwagen war der klassische Erntewagen für Heu und Garben." },
-        { question: "Was verstand man früher unter dem ‚Frondienst‘?", options: ["Freiwillige Nachbarschaftshilfe", "Unbezahlte Arbeitsleistungen, die Bauern für den Grundherrn leisten mussten", "Der Wehrdienst im Krieg", "Ferienarbeit für Jugendliche"], correct: 1, explanation: "Richtig! Frondienste waren historische Pflichtarbeiten für den Grundbesitzer." },
-        { question: "Wofür wurde der ‚Zehnte‘ historisch abgegeben?", options: ["Als Kirchensteuer oder Abgabe an den Grundherrn (10% der Ernte)", "Als Steuer für Autos", "Als Lohn für Knechte", "Als Preisgeld"], correct: 0, explanation: "Richtig! Der Zehnte war die traditionelle Abgabe von einem Zehntel des Ertrags." },
-        { question: "Was war ein ‚Knecht‘ auf dem Hof?", options: ["Der Besitzer des Hofes", "Ein angestellter landwirtschaftlicher Arbeiter", "Der Dorfpfarrer", "Ein Händler"], correct: 1, explanation: "Richtig! Knechte verrichteten die schweren körperlichen Arbeiten auf dem landwirtschaftlichen Betrieb." },
-        { question: "Was war eine ‚Magd‘?", options: ["Die Bäuerin", "Eine weibliche Arbeitskraft im Haushalt und Stall des Hofes", "Die Hebamme des Dorfes", "Eine Marktfrau"], correct: 1, explanation: "Richtig! Mägde unterstützten bei Hausarbeit, Viehpflege und Melken." },
-        { question: "Was versteht man unter ‚Erntedank‘?", options: ["Ein herbstliches kirchliches und dorftägliches Fest zum Dank für die eingebrachte Ernte", "Das Ende des Winters", "Der Geburtstag des Bauern", "Das Scheren der Schafe"], correct: 0, explanation: "Richtig! Das Erntedankfest feiert den Abschluss der erfolgreichen Ernte." },
-        { question: "Wofür stand das alte Sprichwort: ‚Ist der Mai kuhl und nass, füllt’ dem Bauern Scheune und Fass‘?", options: ["Bauern mögen keinen Regen", "Ein kühler und nasser Mai kündigt ein gutes landwirtschaftliches Jahr an", "Das Getreide verfault im Mai", "Im Mai wird nicht gearbeitet"], correct: 1, explanation: "Richtig! Alte Bauernregeln spiegeln die Erfahrung jahrhundertelanger Beobachtungen wider." },
-
-        // Weitere traditionelle Fragen (Füllung bis 100)
-        { question: "Welches Getreide braucht am meisten Wärme und wurde deshalb in Deutschland traditionell seltener auf den kargen Bergen angebaut?", options: ["Roggen", "Hafer", "Mais", "Gerste"], correct: 2, explanation: "Richtig! Mais liebt Wärme und wuchs früher vor allem in wärmeren Regionen." },
-        { question: "Was ist ein ‚Stallmiststreuer‘?", options: ["Eine Mistgabel", "Ein landwirtschaftliches Anhänger-Gerät zum gleichmäßigen Ausbringen von Stalldung auf dem Acker", "Ein Besen", "Ein Rechen"], correct: 1, explanation: "Richtig! Der Miststreuer mechanisierte das kräftezeubende Ausbringen von Mist." },
-        { question: "Wie nennt man das junge Schaf im ersten Lebensjahr?", options: ["Lamm", "Fohlen", "Kalb", "Frischling"], correct: 0, explanation: "Richtig! Ein Lamm ist das Jungtier des Schafes." },
-        { question: "Welches Handwerk war früher auf jedem Dorf für die Beschlagung von Zugtieren und Reparatur von Geräten unverzichtbar?", options: ["Der Bäcker", "Der Hufschmied", "Der Schneider", "Der Uhrmacher"], correct: 1, explanation: "Richtig! Der Schmied war für Pferde, Ochsen und eiserne Ackergeräte überlebenswichtig." },
-        { question: "Was ist ‚Spreu‘ beim Getreide?", options: ["Das essbare Korn", "Die leichten, papierartigen Hüllblätter der Getreideähre", "Die Wurzeln der Pflanze", "Der Halm"], correct: 1, explanation: "Richtig! Spreu ist der Abfall beim Dreschen, der beim Worfeln weggeblasen wurde." },
-        { question: "Was bedeutet das ‚Worfeln‘ von Getreide?", options: ["Das Mahlen in der Mühle", "Das Hochwerfen des Ernteguts im Wind, damit die leichte Spreu wegfliegt", "Das Einweichen in Wasser", "Das Aussäen"], correct: 1, explanation: "Richtig! Beim Worfeln trennte der Wind die schweren Körner von der leichten Spreu." },
-        { question: "Welche Tiere wurden früher oft als ‚Wachhunde‘ oder Schutz vor Ratten auf Höfen gehalten?", options: ["Katzen und Hofhunde", "Löwen", "Affen", "Papageien"], correct: 0, explanation: "Richtig! Katzen hielten Mäuse und Ratten im Getreidelager fern." },
-        { question: "Was versteht man unter einer ‚Sommergerste‘?", options: ["Gerste, die im Sommer gesät und im selben Jahr geerntet wird", "Gerste, die zwei Jahre wächst", "Getreide für den Winter", "Unkraut"], correct: 0, explanation: "Richtig! Sommergerste wird im Frühjahr gesät (oft für Brauzwecke)." },
-        { question: "Was ist ein ‚Scheunentor‘?", options: ["Eine kleine Haustür", "Das große, oft zweiflügelige Tor, damit der volle Erntewagen in die Scheune fahren konnte", "Ein Gartentor", "Ein Zaun"], correct: 1, explanation: "Richtig! Das große Scheunentor musste hoch und breit genug für beladene Fuhrwerke sein." },
-        { question: "Welcher Baum liefert die bekannten essbaren Kastanien (Maronen)?", options: ["Die Roßkastanie", "Die Edelkastanie (Esskastanie)", "Die Eiche", "Die Buche"], correct: 1, explanation: "Richtig! Nur die Edelkastanie liefert die essbaren Maronen." },
-
-        { question: "Was ist ‚Heu‘ im Gegensatz zu ‚Stroh‘?", options: ["Getrocknetes Gras als Tierfutter", "Getrocknete Getreidehalme als Streu", "Es ist genau dasselbe", "Giftiges Unkraut"], correct: 0, explanation: "Richtig! Heu ist getrocknetes Grünfutter, Stroh sind die ausgedroschenen Halme vom Getreide." },
-        { question: "Wofür wurde Stroh auf dem Hof traditionell am meisten genutzt?", options: ["Als Hauptnahrung für Kühe", "Als Einstreu im Stall und als Dachmaterial", "Zum Brotbacken", "Als Kraftstoff"], correct: 1, explanation: "Richtig! Stroh diente als saubere und warme Einstreu für das Vieh." },
-        { question: "Wie nennt man die weibliche Ziege?", options: ["Zibbe", "Geiß (oder Ziegenziege)", "Sau", "Kuh"], correct: 1, explanation: "Richtig! Die weibliche Ziege wird oft als Geiß bezeichnet." },
-        { question: "Was ist ein ‚Bock‘ bei den Ziegen oder Schafen?", options: ["Das weibliche Tier", "Das erwachsene männliche Tier", "Ein Jungtier", "Ein kastriertes Tier"], correct: 1, explanation: "Richtig! Der Bock ist das männliche Zucht- oder Vatertier." },
-        { question: "Was versteht man unter der ‚Schafwolle‘?", options: ["Das Fell der Schweine", "Das gekräuselte Haarkleid der Schafe, das zu Garn versponnen wird", "Pflanzenfasern", "Federn"], correct: 1, explanation: "Richtig! Schafwolle wärmt hervorragend und wird seit Jahrtausenden verarbeitet." },
-        { question: "Welcher Monat galt im alten Bauernkalender als der klassische Erntemonat für den Hauptteil des Getreides?", options: ["Mai", "August", "Dezember", "Februar"], correct: 1, explanation: "Richtig! Im August (früher auch Erntemonat genannt) lief die Getreideernte auf Hochtouren." },
-        { question: "Was ist ein ‚Backhaus‘ auf dem Dorf?", options: ["Ein Ofen in der Küche", "Ein kleines, separates Gebäude auf dem Hof oder im Dorf, in dem gemeinschaftlich Brot gebacken wurde", "Eine Bäckerei in der Stadt", "Ein Holzschuppen"], correct: 1, explanation: "Richtig! Das holzbeheizte Backhaus war früher der Treffpunkt zum großen Brotbacken." },
-        { question: "Warum wurden Höfe früher oft als ‚Vierseitenhöfe‘ oder geschlossene Anlagen gebaut?", options: ["Weil es schick aussah", "Zum Schutz vor Wind, Dieben und Feuer sowie zur besseren Organisation der Wirtschaftsgebäude", "Um Tiere zu verstecken", "Wegen steuerlicher Vorteile"], correct: 1, explanation: "Richtig! Die geschlossene Bauweise bot Schutz und hielt Arbeitswege kurz." },
-        { question: "Was ist eine ‚Mistgabel‘?", options: ["Ein Essbesteck", "Eine spezielle langstielige Gabel mit gebogenen Zinken zum Laden und Verteilen von Stalldung", "Ein Rechen", "Ein Spaten"], correct: 1, explanation: "Richtig! Die Mistgabel war das Standardwerkzeug im Stall." },
-        { question: "Was bedeutet das alte Wort ‚Heuernte‘?", options: ["Das Schneiden, Trocknen und Einbringen von Gras als Tierfutter für den Winter", "Das Fällen von Bäumen", "Das Dreschen von Getreide", "Das Pflügen der Felder"], correct: 0, explanation: "Richtig! Die Heuernte im Frühsommer war eine der schweißtreibendsten Arbeiten auf dem Hof." }
+        // --- OBSTBAU, GARTEN & TRADITIONEN ---
+        { question: "Was ist der traditionelle Sinn des ‚Kronenschnitts‘ bei Apfelbäumen im Spätwinter?", options: ["Den Baum zu töten", "Licht in die Krone zu lassen, altes Holz zu entfernen und den Ertrag zu sichern", "Die Rinde schützen", "Wurzeln stärken"], correct: 1, explanation: "Richtig! Der fachgerechte Winterschnitt sorgt für gesunde Bäume und gute Ernte." },
+        { question: "Was ist eine ‚Streuobstwiese‘?", options: ["Ein gedüngter Plantagen-Acker", "Eine traditionelle Form mit hochstämmigen, verstreuten Obstbäumen verschiedener Sorten", "Ein reiner Beerengarten", "Ein abgeholzter Wald"], correct: 1, explanation: "Richtig! Streuobstwiesen sind artenreiche, ökologische Kulturlandschaften." },
+        { question: "Was machte man im Herbst traditionell mit Äpfeln, die nicht gelagert werden konnten?", options: ["Weggeworfen", "Zur Mosterei gebracht und zu Apfelwein oder Saft gepresst", "Verbrannt", "An Fische verfüttert"], correct: 1, explanation: "Richtig! Das Mosten war im Herbst ein zentraler Arbeitsgang." },
+        { question: "Welches legendäre deutsche Traktormodell wurde von Lanz in Mannheim gebaut?", options: ["Lanz Bulldog", "Porsche Diesel", "Fendt Dieselross", "Deutz Traktor"], correct: 0, explanation: "Richtig! Der Lanz Bulldog mit Glühkopfmotor war jahrzehntelang der Inbegriff des Treckers." },
+        { question: "Was verstand man früher unter dem ‚Frondienst‘?", options: ["Freiwillige Nachbarschaftshilfe", "Unbezahlte Arbeitsleistungen, die Bauern für den Grundherrn leisten mussten", "Wehrdienst", "Ferienarbeit"], correct: 1, explanation: "Richtig! Frondienste waren historische Pflichtarbeiten für den Grundbesitzer." },
+        { question: "Welches Handwerk war auf dem Dorf neben der Landwirtschaft für Zugtiere und Geräte unverzichtbar?", options: ["Der Bäcker", "Der Hufschmied", "Der Schneider", "Der Uhrmacher"], correct: 1, explanation: "Richtig! Der Schmied war für Pferde, Ochsen und eiserne Ackergeräte überlebenswichtig." }
     ];
 
     let currentQuestionIndex = 0;
@@ -312,11 +369,9 @@
     let answered = false;
     let quizQuestions = [];
 
-    // Fragen bei Start mischen und 25 Stück für eine Runde auswählen (oder alle 100, hier nehmen wir eine tolle Runde von 25 zufälligen Fragen, damit es nicht zu lang wird, oder alle? Opa freut sich über eine knackige Runde – wir nehmen 30 zufällige Fragen pro Durchgang, damit es abwechslungsreich bleibt!)
     function initQuiz() {
-        // Fragen kopieren und mischen
         let shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-        quizQuestions = shuffled.slice(0, 30); // 30 Fragen pro Durchgang sind perfekt für eine spannende Runde!
+        quizQuestions = shuffled.slice(0, 30); // 30 spannende Fragen pro Runde
         currentQuestionIndex = 0;
         score = 0;
         document.getElementById('results').style.display = 'none';
@@ -397,11 +452,11 @@
         
         let message = `Ergebnis: Du hast ${score} von ${quizQuestions.length} Fragen richtig beantwortet!`;
         if (score === quizQuestions.length) {
-            message += " Meisterhaft! Das ist die Höchstpunktzahl – ein echter Kenner!";
+            message += " Meisterhaft! Das ist die Höchstpunktzahl – ein wahrer Experte vom Fach!";
         } else if (score >= (quizQuestions.length * 0.7)) {
-            message += " Hervorragend! Da sitzt das alte Wissen noch ganz genau.";
+            message += " Hervorragend! Da sitzt das alte Handwerks- und Bauernwissen noch wie früher.";
         } else {
-            message += " Schön mitgedacht, das hat richtig Spaß gemacht!";
+            message += " Schön mitgedacht, das hat richtig Freude gemacht!";
         }
         document.getElementById('score-text').innerText = message;
     }
@@ -410,7 +465,6 @@
         initQuiz();
     }
 
-    // Start beim Laden
     initQuiz();
 </script>
 
