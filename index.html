@@ -1,5 +1,3 @@
-type,attribute,value,displayName,iiqElevatedAccess,owner,requestable,classifications,bntApplication,extAttr1,extAttr2,extAttr3,directory
-group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=BioNTechRW,DC=bntman,DC=int",BNTMAN\bntman\APP_PCS163_PA_DS_1_L0,false,,true,,AD_PCS163,undefined,undefined,undefined,undefined
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -207,7 +205,7 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
             explanation: "Richtig! Ein Morgen war traditionell die Fläche, die ein Mann mit einem Gespann (Pferd oder Ochse) an einem Vormittag pflügen konnte – meist um die 2.500 m² (je nach Region etwas unterschiedlich)."
         },
         {
-            question: "Was bedeutet es, wenn ein Acker früher im ‚Drei-Felder-Wirtschafts-System‘ brachlag?",
+            question: "Was bedeutet es, wenn an einem Acker früher im ‚Drei-Felder-Wirtschafts-System‘ die Brache anstand?",
             options: [
                 "Das Feld wurde mit Steinen beräumt und nicht betreten",
                 "Das Feld wurde im Sommer komplett mit Hackfrüchten bestellt",
@@ -218,7 +216,7 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
             explanation: "Richtig! Bei der Dreifelderwirtschaft lag jedes Feld im Turnus ein Jahr lang brach, um Nährstoffe anzureichern und Unkraut zu bekämpfen."
         },
         {
-            question: "Welches alte landwirtschaftliche Gerät wurde traditionell mit einem ‚Worb‘ (Sensenbaum) und einem ‚Senseneisen‘ verbunden und musste regelmäßig auf dem Dengelstock ‚gedengelt‘ werden?",
+            question: "Welches alte landwirtschaftliche Gerät wurde traditionell mit einem ‚Worb‘ (Sensenbaum) verbunden und musste regelmäßig auf dem Dengelstock ‚gedengelt‘ werden?",
             options: [
                 "Der Pflug",
                 "Die Sense",
@@ -240,7 +238,7 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
             explanation: "Richtig! 1 Hektar sind 100 Ar. 50 Hektar mal 100 ergibt 5.000 Ar."
         },
         {
-            question: "Was verstand man früher unter dem ‚Zehnten‘, den die Bauern abgeben mussten?",
+            question: "Was verstand man früher unter dem ‚Zehnten‘, den die Höfe abgeben mussten?",
             options: [
                 "Jedes zehnte Jahr durfte nichts angebaut werden",
                 "Ein Zehntel der Ernte musste als Abgabe an Kirche oder Grundherrn abgetreten werden",
@@ -275,7 +273,7 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
         {
             question: "Was machte man früher auf den heimischen Streuobstwiesen im Spätwinter traditionell mit den Obstbäumen (wie Apfel- und Birnbäumen)?",
             options: [
-                "Man schnitt die Kronen stark zurück (Kronenschnitt), um altes Holz zu entfernen und den Ertrag zu sichern",
+                "Man schnitt die Kronen zurück (Kronenschnitt), um altes Holz zu entfernen und den Ertrag zu sichern",
                 "Man nagelte Kupfernägel in den Stamm, um Schädlinge fernzuhalten",
                 "Man deckte die Baumscheiben mit dicken Schichten aus frischem Schweinemist ab",
                 "Man rieb die Stämme mit Kalkmilch ein, um Frostschäden zu verhindern – geschnitten wurde erst im Juni"
@@ -331,12 +329,10 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
             feedbackBox.innerText = "Leider nicht ganz richtig. " + q.explanation;
         }
 
-        // Alle Buttons deaktivieren
         for (let btn of buttons) {
             btn.disabled = true;
         }
 
-        // Nächsten Button anzeigen oder Text anpassen bei letzter Frage
         const nextBtn = document.getElementById('next-btn');
         if (currentQuestion < quizData.length - 1) {
             nextBtn.innerText = "Nächste Frage";
@@ -379,7 +375,6 @@ group,memberOf,"CN=APP_PCS163_PA_DS_1_L0,OU=WinCC,OU=Groups,OU=Sivaas PCS7,OU=Bi
         loadQuestion();
     }
 
-    // Start beim Laden
     loadQuestion();
 </script>
 
