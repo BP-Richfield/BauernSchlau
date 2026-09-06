@@ -22,7 +22,6 @@
             position: relative;
             overflow-x: hidden;
         }
-        /* Dezente, stilisierte Landschaft im Hintergrund als Landwirtschafts-Motiv */
         body::after {
             content: "";
             position: fixed;
@@ -300,8 +299,9 @@
                     <option value="1">2. Morgenluft (Upbeat)</option>
                     <option value="2">3. Schmiede-Rock (Beat)</option>
                     <option value="3">4. Wiesengrün (Schnell)</option>
+                    <option value="mp3">5. Sonntags auf dem Dorf (MP3)</option>
                 </select>
-                <input type="range" id="vol-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.4" title="Lautstärke">
+                <input type="range" id="vol-slider" class="volume-slider" min="0" max="1" step="0.05" value="0.4" title="Lautstärke" oninput="updateVolume()">
                 <button class="audio-btn" id="bg-audio-btn" onclick="toggleBackgroundMusic()">Musik an</button>
             </div>
         </div>
@@ -339,6 +339,10 @@
     let isMusicPlaying = false;
     let availableVoices = [];
 
+    // MP3-Audio-Objekt für die externe Datei initialisieren
+    const mp3Audio = new Audio('sunday_in_the_village_square.mp3');
+    mp3Audio.loop = true;
+
     function getAudioContext() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -347,6 +351,11 @@
             audioCtx.resume();
         }
         return audioCtx;
+    }
+
+    function updateVolume() {
+        const sliderVal = parseFloat(document.getElementById('vol-slider').value);
+        mp3Audio.volume = sliderVal;
     }
 
     function loadVoices() {
@@ -459,54 +468,70 @@
     ];
 
     function startMusic() {
-        const ctx = getAudioContext();
-        if (bgMusicInterval) clearInterval(bgMusicInterval);
+        const selection = document.getElementById('song-select').value;
+        
+        // Stoppe vorher alles
+        stopAllMusic();
 
-        const songIndex = parseInt(document.getElementById('song-select').value);
-        const currentSong = songs[songIndex];
-        let step = 0;
+        if (selection === 'mp3') {
+            updateVolume();
+            mp3Audio.play().catch(e => console.log("MP3 Wiedergabe blockiert oder Datei fehlt", e));
+        } else {
+            const ctx = getAudioContext();
+            const currentSong = songs[parseInt(selection)];
+            let step = 0;
 
-        bgMusicInterval = setInterval(() => {
-            if (!isMusicPlaying) return;
-            try {
-                const sliderVal = parseFloat(document.getElementById('vol-slider').value);
-                
-                const melFreq = currentSong.melody[step % currentSong.melody.length];
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.value = melFreq;
-                
-                osc.connect(gain);
-                gain.connect(ctx.destination);
+            bgMusicInterval = setInterval(() => {
+                if (!isMusicPlaying) return;
+                try {
+                    const sliderVal = parseFloat(document.getElementById('vol-slider').value);
+                    
+                    const melFreq = currentSong.melody[step % currentSong.melody.length];
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = melFreq;
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
 
-                const now = ctx.currentTime;
-                gain.gain.setValueAtTime(sliderVal * 0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-                
-                osc.start(now);
-                osc.stop(now + 0.3);
+                    const now = ctx.currentTime;
+                    gain.gain.setValueAtTime(sliderVal * 0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.3);
 
-                if (step % 2 === 0) {
-                    const bassFreq = currentSong.bass[(step / 2) % currentSong.bass.length];
-                    const bassOsc = ctx.createOscillator();
-                    const bassGain = ctx.createGain();
-                    bassOsc.type = 'sawtooth';
-                    bassOsc.frequency.value = bassFreq;
+                    if (step % 2 === 0) {
+                        const bassFreq = currentSong.bass[(step / 2) % currentSong.bass.length];
+                        const bassOsc = ctx.createOscillator();
+                        const bassGain = ctx.createGain();
+                        bassOsc.type = 'sawtooth';
+                        bassOsc.frequency.value = bassFreq;
 
-                    bassOsc.connect(bassGain);
-                    bassGain.connect(ctx.destination);
+                        bassOsc.connect(bassGain);
+                        bassGain.connect(ctx.destination);
 
-                    bassGain.gain.setValueAtTime(sliderVal * 0.7, now);
-                    bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+                        bassGain.gain.setValueAtTime(sliderVal * 0.7, now);
+                        bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
 
-                    bassOsc.start(now);
-                    bassOsc.stop(now + 0.2);
-                }
+                        bassOsc.start(now);
+                        bassOsc.stop(now + 0.2);
+                    }
 
-                step++;
-            } catch(e) {}
-        }, currentSong.tempo);
+                    step++;
+                } catch(e) {}
+            }, currentSong.tempo);
+        }
+    }
+
+    function stopAllMusic() {
+        if (bgMusicInterval) {
+            clearInterval(bgMusicInterval);
+            bgMusicInterval = null;
+        }
+        mp3Audio.pause();
+        mp3Audio.currentTime = 0;
     }
 
     function toggleBackgroundMusic() {
@@ -514,8 +539,7 @@
         const btn = document.getElementById('bg-audio-btn');
 
         if (isMusicPlaying) {
-            clearInterval(bgMusicInterval);
-            bgMusicInterval = null;
+            stopAllMusic();
             isMusicPlaying = false;
             btn.innerText = "Musik an";
             btn.style.backgroundColor = "#4a5d4e";
